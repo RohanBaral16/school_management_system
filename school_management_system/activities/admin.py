@@ -5,6 +5,7 @@ from academics.models import StudentEnrollment
 
 class ExamSubjectInline(admin.TabularInline):
     model = ExamSubject
+    fields = ['subject', 'exam_date', 'full_marks_theory', 'pass_marks_theory', 'full_marks_practical', 'pass_marks_practical']
     extra = 1
     
 
@@ -13,11 +14,12 @@ class ResultFormSet(BaseInlineFormSet):
         super().__init__(*args, **kwargs)
         if self.instance.pk:  # Check if we are editing an existing ExamSubject
             # 1. Get all enrolled student IDs for this standard
-            enrolled_ids = StudentEnrollment.objects.filter(
+            enrolled_qs = StudentEnrollment.objects.filter(
                 standard=self.instance.standard,
                 academic_year=self.instance.exam.academic_year,
                 status='enrolled'
-            ).values_list('student_id', flat=True)
+            )
+            enrolled_ids = enrolled_qs.values_list('id', flat=True)
 
             # 2. See who already has a result record
             existing_ids = self.queryset.values_list('student_id', flat=True)
@@ -28,6 +30,9 @@ class ResultFormSet(BaseInlineFormSet):
             # 4. Force Django to provide "Initial" data for the extra rows
             self.initial = [{'student': s_id} for s_id in missing_ids]
             self.extra = len(self.initial)
+
+            # Limit the student dropdown to enrolled students only
+            self.form.base_fields['student'].queryset = enrolled_qs
 
 class ResultInline(admin.TabularInline):
     model = Result
@@ -43,7 +48,7 @@ class ExamAdmin(admin.ModelAdmin):
 
 @admin.register(ExamSubject)
 class ExamSubjectAdmin(admin.ModelAdmin):
-    list_display = ('exam', 'subject', 'standard', 'exam_date')
+    list_display = ('exam', 'subject', 'exam_date')
     inlines = [ResultInline]
 
 @admin.register(Result)

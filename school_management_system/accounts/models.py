@@ -24,7 +24,7 @@ class Student(models.Model):
     date_of_birth_bs = NepaliDateField(default=nepali_datetime.date.today)
     
     # Identifiers
-    roll_number = models.CharField(max_length=20)
+    
     admission_number = models.CharField(max_length=20, unique=True)
     
     # Metadata
@@ -35,7 +35,7 @@ class Student(models.Model):
         ordering = ['first_name', 'last_name']
 
     def __str__(self):
-        return f"{self.first_name} {self.last_name} ({self.admission_number})"
+        return f"{self.first_name} {self.last_name}"
 
 
 class Teacher(models.Model):

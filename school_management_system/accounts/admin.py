@@ -8,7 +8,7 @@ class StudentEnrollmentInline(admin.TabularInline):
 
 @admin.register(Student)
 class StudentAdmin(admin.ModelAdmin):
-    list_display = ('roll_number', 'first_name', 'last_name', 'admission_number')
+    list_display = ( 'first_name', 'last_name', 'admission_number')
     search_fields = ('first_name', 'last_name', 'admission_number')
     inlines = [StudentEnrollmentInline]
 

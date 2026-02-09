@@ -22,6 +22,27 @@ class AcademicYear(models.Model):
 
     def __str__(self):
         return self.name
+    
+# --- standard ---
+class Standard(models.Model):
+    STATUS_CHOICES = [
+        ("active", "Active"),
+        ("inactive", "Inactive"),
+        ("archived", "Archived")
+    ]
+    name = models.CharField(max_length=20)
+    section = models.CharField(max_length=2, null=True, blank=True)
+    status = models.CharField(choices=STATUS_CHOICES, max_length=20, default="active")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['name', 'section']
+        unique_together = ('name', 'section')
+        verbose_name = 'Class / Standard'
+
+    def __str__(self):
+        return f"{self.name} - {self.section}" if self.section else self.name
 
 # --- SUBJECT ---
 class Subject(models.Model):
@@ -35,28 +56,11 @@ class Subject(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.name} ({self.code})"
+        # Now it shows: "Mathematics (Class 10)"
+        return f"{self.name} ({self.standard.name} {self.curriculum_version})"
+    
 
-# --- CLASSROOM ---
-class Standard(models.Model):
-    STATUS_CHOICES = [
-        ("active", "Active"),
-        ("inactive", "Inactive"),
-        ("archived", "Archived")
-    ]
-    name = models.CharField(max_length=20)
-    section = models.CharField(max_length=2, null=True, blank=True)
-    class_teacher = models.ForeignKey('accounts.Teacher', null=True, blank=True, on_delete=models.SET_NULL)
-    status = models.CharField(choices=STATUS_CHOICES, max_length=20, default="active")
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
-    class Meta:
-        ordering = ['name', 'section']
-        unique_together = ('name', 'section')
-
-    def __str__(self):
-        return f"{self.name} - {self.section}" if self.section else self.name
 
 # --- ENROLLMENT ---
 class StudentEnrollment(models.Model):
@@ -71,6 +75,7 @@ class StudentEnrollment(models.Model):
     ]
     student = models.ForeignKey('accounts.Student', on_delete=models.PROTECT)
     standard = models.ForeignKey(Standard, on_delete=models.PROTECT)
+    roll_number = models.CharField(max_length=20)
     academic_year = models.ForeignKey(AcademicYear, on_delete=models.PROTECT)
     status = models.CharField(max_length=20, choices=ENROLLMENT_STATUS_CHOICES, default='enrolled')
     created_at = models.DateTimeField(auto_now_add=True)
@@ -78,13 +83,15 @@ class StudentEnrollment(models.Model):
 
     class Meta:
         # Prevent double enrollment in the same year
-        unique_together = ('student', 'academic_year')
+        unique_together = [('student', 'academic_year'),('standard', 'academic_year', 'roll_number'), ]   
         ordering = ['-academic_year', 'standard']
+    def __str__(self):
+        return f"{self.student}-{self.standard}-{self.roll_number}"
 
 # --- TEACHER ASSIGNMENTS ---
 class ClassTeacher(models.Model):
     standard = models.ForeignKey(Standard, on_delete=models.PROTECT)
-    teacher = models.ForeignKey('accounts.Teacher', on_delete=models.CASCADE)
+    teacher = models.ForeignKey('accounts.Teacher', on_delete=models.PROTECT)
     academic_year = models.ForeignKey(AcademicYear, on_delete=models.PROTECT)
 
     class Meta:
@@ -99,3 +106,5 @@ class TeacherSubject(models.Model):
 
     class Meta:
         unique_together = ('subject', 'standard', 'academic_year')
+        verbose_name = 'Assigned ClassTeachers'
+        

@@ -3,6 +3,7 @@ from django.core.exceptions import ValidationError
 from nepali_datetime_field.models import NepaliDateField
 import nepali_datetime
 
+
 # --- ATTENDANCE ---
 class Attendance(models.Model):
     ATTENDANCE_CHOICES = [
@@ -50,11 +51,11 @@ class Exam(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.academic_year})"
+    
 
 class ExamSubject(models.Model):
     exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name='exam_subjects')
     subject = models.ForeignKey('academics.Subject', on_delete=models.CASCADE)
-    standard = models.ForeignKey('academics.Standard', on_delete=models.CASCADE)
     
     exam_date = NepaliDateField()
     
@@ -65,16 +66,26 @@ class ExamSubject(models.Model):
     # Practical Marks
     full_marks_practical = models.DecimalField(max_digits=5, decimal_places=2, default=25.0)
     pass_marks_practical = models.DecimalField(max_digits=5, decimal_places=2, default=9.0)
+    
+    standard = models.ForeignKey('academics.Standard', on_delete=models.CASCADE, null=True, blank=True)
+
+    def save(self, *args, **kwargs):
+        # Auto-assign the standard from the subject before saving
+        if self.subject:
+            self.standard = self.subject.standard
+        super().save(*args, **kwargs)
 
     class Meta:
-        unique_together = ('exam', 'subject', 'standard')
+        unique_together = ('exam', 'subject')
 
     def __str__(self):
-        return f"{self.exam.name} - {self.subject.name} ({self.standard})"
+        return f"{self.exam.name} - {self.exam.academic_year} - {self.subject.standard} - {self.subject.name}"
 
 # --- RESULTS ---
+
+
 class Result(models.Model):
-    student = models.ForeignKey('accounts.Student', on_delete=models.CASCADE)
+    student = models.ForeignKey('academics.StudentEnrollment', on_delete=models.CASCADE)
     exam_subject = models.ForeignKey(ExamSubject, on_delete=models.CASCADE)
     marks_obtained_theory = models.DecimalField(max_digits=5, decimal_places=2)
     marks_obtained_practical = models.DecimalField(max_digits=5, decimal_places=2, default=0)
@@ -83,42 +94,118 @@ class Result(models.Model):
     subject_grade_point = models.DecimalField(max_digits=3, decimal_places=2, editable=False)
     subject_grade = models.CharField(max_length=5, editable=False)
 
-    def save(self, *args, **kwargs):
-        # 1. Calculate Total Percentage for this subject
+    class Meta:
+        unique_together = ('student', 'exam_subject')
+
+    def clean(self):
+        """Ensure obtained marks do not exceed full marks."""
+        super().clean()
+        if self.student and self.student.status != 'enrolled':
+            raise ValidationError({
+                'student': "Result can only be recorded for enrolled students."
+            })
+        if self.exam_subject:
+            if self.marks_obtained_theory > self.exam_subject.full_marks_theory:
+                raise ValidationError({
+                    'marks_obtained_theory': f"Theory marks cannot exceed {self.exam_subject.full_marks_theory}."
+                })
+            if self.marks_obtained_practical > self.exam_subject.full_marks_practical:
+                raise ValidationError({
+                    'marks_obtained_practical': f"Practical marks cannot exceed {self.exam_subject.full_marks_practical}."
+                })
+
+    def calculate_grading(self):
+        """Logic to calculate Grade and GPA based on Nepal CDC standard."""
         theory_fm = self.exam_subject.full_marks_theory
         practical_fm = self.exam_subject.full_marks_practical
         total_fm = theory_fm + practical_fm
-        obtained = self.marks_obtained_theory + self.marks_obtained_practical
         
-        percentage = (obtained / total_fm) * 100
+        obtained_total = self.marks_obtained_theory + self.marks_obtained_practical
+        
+        # Avoid division by zero
+        if total_fm <= 0:
+            return 'NG', 0.0
 
-        # 2. Nepal CDC Grading Logic
-        theory_perc = (self.marks_obtained_theory / theory_fm) * 100
+        # Calculate percentages
+        total_percentage = (obtained_total / total_fm) * 100
         
-        if theory_perc < 35:
-            self.subject_grade = 'NG' 
-            self.subject_grade_point = 0.00
-        elif percentage >= 90:
-            self.subject_grade, self.subject_grade_point = 'A+', 4.0
-        elif percentage >= 80:
-            self.subject_grade, self.subject_grade_point = 'A', 3.6
-        elif percentage >= 70:
-            self.subject_grade, self.subject_grade_point = 'B+', 3.2
-        elif percentage >= 60:
-            self.subject_grade, self.subject_grade_point = 'B', 2.8
-        elif percentage >= 50:
-            self.subject_grade, self.subject_grade_point = 'C+', 2.4
-        elif percentage >= 40:
-            self.subject_grade, self.subject_grade_point = 'C', 2.0
-        elif percentage >= 35:
-            self.subject_grade, self.subject_grade_point = 'D', 1.6
-        else:
-            self.subject_grade, self.subject_grade_point = 'NG', 0.0
-            
+        # Individual component check (NG if Theory < 35% or Practical < 35%)
+        # Note: Nepal CDC typically requires min 35% in theory AND practical separately to pass.
+        theory_pass_perc = (self.marks_obtained_theory / theory_fm * 100) if theory_fm > 0 else 100
+        practical_pass_perc = (self.marks_obtained_practical / practical_fm * 100) if practical_fm > 0 else 100
+
+        if theory_pass_perc < 35 or practical_pass_perc < 35:
+            return 'NG', 0.00
+        
+        # Grading Scale based on total percentage
+        if total_percentage >= 90: return 'A+', 4.0
+        if total_percentage >= 80: return 'A', 3.6
+        if total_percentage >= 70: return 'B+', 3.2
+        if total_percentage >= 60: return 'B', 2.8
+        if total_percentage >= 50: return 'C+', 2.4
+        if total_percentage >= 40: return 'C', 2.0
+        if total_percentage >= 35: return 'D', 1.6
+        return 'NG', 0.0
+
+    def save(self, *args, **kwargs):
+        # Force validation before saving
+        self.full_clean()
+        
+        # Perform grading calculation
+        self.subject_grade, self.subject_grade_point = self.calculate_grading()
+        
         super().save(*args, **kwargs)
 
-    class Meta:
-        unique_together = ('student', 'exam_subject')
+    def __str__(self):
+        return f"{self.student} - {self.exam_subject.subject.name}: {self.subject_grade}"
+
+
+# class Result(models.Model):
+#     student = models.ForeignKey('accounts.Student', on_delete=models.CASCADE)
+#     exam_subject = models.ForeignKey(ExamSubject, on_delete=models.CASCADE)
+#     marks_obtained_theory = models.DecimalField(max_digits=5, decimal_places=2)
+#     marks_obtained_practical = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    
+#     # Auto-calculated fields
+#     subject_grade_point = models.DecimalField(max_digits=3, decimal_places=2, editable=False)
+#     subject_grade = models.CharField(max_length=5, editable=False)
+
+#     def save(self, *args, **kwargs):
+#         # 1. Calculate Total Percentage for this subject
+#         theory_fm = self.exam_subject.full_marks_theory
+#         practical_fm = self.exam_subject.full_marks_practical
+#         total_fm = theory_fm + practical_fm
+#         obtained = self.marks_obtained_theory + self.marks_obtained_practical
+        
+#         percentage = (obtained / total_fm) * 100
+
+#         # 2. Nepal CDC Grading Logic
+#         theory_perc = (self.marks_obtained_theory / theory_fm) * 100
+        
+#         if theory_perc < 35:
+#             self.subject_grade = 'NG' 
+#             self.subject_grade_point = 0.00
+#         elif percentage >= 90:
+#             self.subject_grade, self.subject_grade_point = 'A+', 4.0
+#         elif percentage >= 80:
+#             self.subject_grade, self.subject_grade_point = 'A', 3.6
+#         elif percentage >= 70:
+#             self.subject_grade, self.subject_grade_point = 'B+', 3.2
+#         elif percentage >= 60:
+#             self.subject_grade, self.subject_grade_point = 'B', 2.8
+#         elif percentage >= 50:
+#             self.subject_grade, self.subject_grade_point = 'C+', 2.4
+#         elif percentage >= 40:
+#             self.subject_grade, self.subject_grade_point = 'C', 2.0
+#         elif percentage >= 35:
+#             self.subject_grade, self.subject_grade_point = 'D', 1.6
+#         else:
+#             self.subject_grade, self.subject_grade_point = 'NG', 0.0
+            
+#         super().save(*args, **kwargs)
+
+#     class Meta:
+#         unique_together = ('student', 'exam_subject')
 
 # --- MISSING MODEL (This solves your ImportError) ---
 class ResultSummary(models.Model):
