@@ -16,10 +16,11 @@ class AcademicYearAdmin(admin.ModelAdmin):
 @admin.register(Subject)
 class SubjectAdmin(admin.ModelAdmin):
     list_display = ('name', 'code', 'standard', 'credit_hours')
+    search_fields = ['name']
 
 @admin.register(StudentEnrollment)
 class StudentEnrollmentAdmin(admin.ModelAdmin):
-    list_display = ('student', 'standard', 'academic_year', 'status')
+    list_display = ('student', 'standard', 'roll_number',  'academic_year', 'status')
     list_filter = ('standard', 'academic_year')
     
     list_select_related = ('student', 'standard', 'academic_year')

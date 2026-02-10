@@ -49,9 +49,11 @@ class Exam(models.Model):
     is_published = models.BooleanField(default=False, help_text="Set to true to show results to students/parents")
     created_at = models.DateTimeField(auto_now_add=True)
 
+    # def __str__(self):
+    #     return f"{self.name} ({self.academic_year})"
     def __str__(self):
-        return f"{self.name} ({self.academic_year})"
-    
+        return self.name
+
 
 class ExamSubject(models.Model):
     exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name='exam_subjects')
@@ -77,9 +79,12 @@ class ExamSubject(models.Model):
 
     class Meta:
         unique_together = ('exam', 'subject')
+        verbose_name_plural = 'Exam Subjects -> Fill Result Per Subject'
 
+    # def __str__(self):
+    #     return f"{self.exam.name} - {self.exam.academic_year} - {self.subject.standard} - {self.subject.name}"
     def __str__(self):
-        return f"{self.exam.name} - {self.exam.academic_year} - {self.subject.standard} - {self.subject.name}"
+        return f"ExamSubject #{self.pk}"
 
 # --- RESULTS ---
 
@@ -96,6 +101,7 @@ class Result(models.Model):
 
     class Meta:
         unique_together = ('student', 'exam_subject')
+        verbose_name_plural = 'Student -> Subject Marks'
 
     def clean(self):
         """Ensure obtained marks do not exceed full marks."""
@@ -156,8 +162,11 @@ class Result(models.Model):
         
         super().save(*args, **kwargs)
 
+    # def __str__(self):
+    #     return f"{self.student} - {self.exam_subject.subject.name}: {self.subject_grade}"
     def __str__(self):
-        return f"{self.student} - {self.exam_subject.subject.name}: {self.subject_grade}"
+        return f"Result #{self.pk}"
+    
 
 
 # class Result(models.Model):
@@ -208,10 +217,30 @@ class Result(models.Model):
 #         unique_together = ('student', 'exam_subject')
 
 # --- MISSING MODEL (This solves your ImportError) ---
+class ResultSummaryResult(models.Model):
+    resultsummary = models.ForeignKey('activities.ResultSummary', on_delete=models.CASCADE)
+    result = models.ForeignKey('activities.Result', on_delete=models.CASCADE)
+
+    class Meta:
+        db_table = 'activities_resultsummary_results'
+        managed = False
+        verbose_name = 'Subject Result'
+        verbose_name_plural = 'Subject Results'
+
+    def __str__(self):
+        return ""
+
+
 class ResultSummary(models.Model):
-    student = models.ForeignKey('accounts.Student', on_delete=models.CASCADE)
+    student = models.ForeignKey('academics.StudentEnrollment', on_delete=models.CASCADE)
     exam = models.ForeignKey(Exam, on_delete=models.CASCADE)
     academic_year = models.ForeignKey('academics.AcademicYear', on_delete=models.PROTECT)
+    results = models.ManyToManyField(
+        'activities.Result',
+        blank=True,
+        related_name='summaries',
+        through='activities.ResultSummaryResult',
+    )
     
     total_marks = models.DecimalField(max_digits=7, decimal_places=2, default=0)
     percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0)
