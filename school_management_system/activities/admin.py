@@ -70,13 +70,16 @@ class ResultInline(admin.TabularInline):
     model = Result
     formset = ResultFormSet
     fields = (
+        'get_roll_no',
         'student',
         'marks_obtained_theory',
         'marks_obtained_practical',
         'subject_grade',
+        
+        
     )
-    readonly_fields = ('subject_grade',)
-    raw_id_fields = ('student',)
+    readonly_fields = ('subject_grade', 'get_roll_no', )
+    autocomplete_fields = [('student')]
     extra = 0
 
     def get_queryset(self, request):
@@ -91,6 +94,11 @@ class ResultInline(admin.TabularInline):
                 'exam_subject__subject',
             )
         )
+        
+    @admin.display(description="Roll No")
+    def get_roll_no(self, obj):
+        # obj is a Result instance
+        return obj.student.roll_number  # or obj.student.roll_no depending on your field name
 
 
 # ============================================================
@@ -266,6 +274,7 @@ class ExamAdmin(admin.ModelAdmin):
 class ExamSubjectAdmin(admin.ModelAdmin):
     list_display = ('exam', 'subject', 'exam_date')
     list_select_related = ('exam', 'subject', 'standard')
+    list_filter = ['exam', 'subject', 'standard']
     inlines = [ResultInline]
 
 
@@ -273,7 +282,7 @@ class ExamSubjectAdmin(admin.ModelAdmin):
 class ResultAdmin(admin.ModelAdmin):
     list_display = (
         'student',
-        'exam_subject',
+        'get_subject_name',
         'total_marks_obtained',
         'subject_grade',
         'subject_grade_point',
@@ -287,7 +296,7 @@ class ResultAdmin(admin.ModelAdmin):
         'is_pass',
     )
 
-    list_filter = ('exam_subject__exam',)
+    list_filter = ('exam_subject__exam', 'exam_subject__standard',  'exam_subject__subject', )
     search_fields = (
         'student__student__first_name',
         'student__student__last_name',
@@ -313,6 +322,10 @@ class ResultAdmin(admin.ModelAdmin):
         actions = super().get_actions(request)
         actions.pop('delete_selected', None)
         return actions
+    @admin.display(description="Subject")
+    def get_subject_name(self, obj):
+        # obj is a Result instance
+        return obj.exam_subject.subject.name  # or obj.student.roll_no depending on your field name
 
 
 @admin.register(Attendance)
