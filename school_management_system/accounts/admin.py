@@ -2,6 +2,8 @@ from django.contrib import admin
 from .models import Student, Teacher
 from academics.models import StudentEnrollment # Import this to use as an Inline
 
+
+
 class StudentEnrollmentInline(admin.TabularInline):
     model = StudentEnrollment
     extra = 0

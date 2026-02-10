@@ -55,7 +55,7 @@ class Exam(models.Model):
 
 class ExamSubject(models.Model):
     exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name='exam_subjects')
-    subject = models.ForeignKey('academics.Subject', on_delete=models.CASCADE)
+    subject = models.ForeignKey('academics.Subject', on_delete=models.SET_NULL, blank=True, null=True)
     
     exam_date = NepaliDateField()
     

@@ -88,7 +88,7 @@ class StudentEnrollment(models.Model):
     def __str__(self):
         return f"{self.student}-{self.standard}-{self.roll_number}"
 
-# --- TEACHER ASSIGNMENTS ---
+#Class teacher assignment
 class ClassTeacher(models.Model):
     standard = models.ForeignKey(Standard, on_delete=models.PROTECT)
     teacher = models.ForeignKey('accounts.Teacher', on_delete=models.PROTECT)
@@ -98,13 +98,14 @@ class ClassTeacher(models.Model):
         unique_together = ('teacher', 'standard', 'academic_year')
         ordering = ['-academic_year', 'standard']
 
+
+#one subject may have two techers, so correctly modeled this too
 class TeacherSubject(models.Model):
     teacher = models.ForeignKey('accounts.Teacher', on_delete=models.CASCADE)
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
-    standard = models.ForeignKey(Standard, on_delete=models.CASCADE)
     academic_year = models.ForeignKey(AcademicYear, on_delete=models.PROTECT)
 
     class Meta:
-        unique_together = ('subject', 'standard', 'academic_year')
-        verbose_name = 'Assigned ClassTeachers'
-        
+        verbose_name = 'Subject Teacher'
+    def __str__(self):
+        return f"{self.subject} ->> {self.teacher}"

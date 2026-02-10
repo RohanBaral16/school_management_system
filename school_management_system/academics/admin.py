@@ -1,5 +1,8 @@
 from django.contrib import admin
-from .models import Subject, Standard, AcademicYear, StudentEnrollment, ClassTeacher
+from .models import Subject, Standard, AcademicYear, StudentEnrollment, ClassTeacher, TeacherSubject
+
+
+
 
 @admin.register(Standard)
 class StandardAdmin(admin.ModelAdmin):
@@ -27,4 +30,10 @@ class StudentEnrollmentAdmin(admin.ModelAdmin):
 class ClassTeacherAdmin(admin.ModelAdmin):
     list_display = ('academic_year', 'standard', 'teacher')
     list_select_related = ('academic_year', 'standard', 'teacher')
+    
+    
+@admin.register(TeacherSubject)
+class TeacherSubjectAdmin(admin.ModelAdmin):
+    list_display = ('subject', 'teacher')
+    list_select_related = ('subject', 'teacher')
     

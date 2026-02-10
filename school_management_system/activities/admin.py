@@ -3,6 +3,8 @@ from .models import Attendance, Exam, ExamSubject, Result, ResultSummary
 from django.forms.models import BaseInlineFormSet
 from academics.models import StudentEnrollment
 
+
+
 class ExamSubjectInline(admin.TabularInline):
     model = ExamSubject
     fields = ['subject', 'exam_date', 'full_marks_theory', 'pass_marks_theory', 'full_marks_practical', 'pass_marks_practical']
