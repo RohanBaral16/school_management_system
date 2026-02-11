@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from ..models import Result
+from ..models import Result, ExamSubject
 
 class ResultSerializer(serializers.ModelSerializer):
     student_full_name = serializers.CharField(
@@ -31,3 +31,19 @@ class ResultSerializer(serializers.ModelSerializer):
             "subject_grade",
             "subject_grade_point"
         ]
+        
+class ExamSubjectSerializer(serializers.ModelSerializer):
+    # Custom fields for nested info
+    subject_name = serializers.CharField(
+        source='subject.name',
+        read_only=True
+    )
+    standard_name = serializers.CharField(
+        source='standard.name',
+        read_only=True
+    )
+
+    class Meta:
+        model = ExamSubject
+        # Include all model fields + custom fields
+        fields = list([f.name for f in model._meta.fields]) + ['subject_name', 'standard_name']
