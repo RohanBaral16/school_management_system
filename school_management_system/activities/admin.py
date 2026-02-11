@@ -370,9 +370,11 @@ class ResultSummaryAdmin(admin.ModelAdmin):
     )
 
     inlines = [ResultSummaryResultInline]
-    actions = [calculate_exam_ranks]
 
     readonly_fields = (
+        'student',
+        'exam',
+        'academic_year',
         'total_marks',
         'percentage',
         'gpa',
