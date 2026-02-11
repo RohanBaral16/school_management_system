@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Result
+from ..models import Result
 
 class ResultSerializer(serializers.ModelSerializer):
     student_full_name = serializers.CharField(
@@ -25,6 +25,7 @@ class ResultSerializer(serializers.ModelSerializer):
             "subject_name",
             "marks_obtained_theory",
             "marks_obtained_practical",
+            "student_roll_number"
         ]
         read_only_fields = [
             "subject_grade",
