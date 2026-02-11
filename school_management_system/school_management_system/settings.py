@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'debug_toolbar',
     'nepali_datetime_field',
+    'rest_framework',
     #apps in the project
     'accounts',
     'academics',
