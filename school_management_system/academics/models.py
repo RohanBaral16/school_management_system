@@ -20,8 +20,8 @@ class AcademicYear(models.Model):
         ordering = ['-name']
         verbose_name = "Academic Year"
 
-    # def __str__(self):
-    #     return self.name
+    def __str__(self):
+        return self.name
     
     @property
     def display_name(self):
@@ -45,8 +45,8 @@ class Standard(models.Model):
         unique_together = ('name', 'section')
         verbose_name = 'Class / Standard'
 
-    # def __str__(self):
-    #     return f"{self.name} - {self.section}" if self.section else self.name
+    def __str__(self):
+        return f"{self.name} - {self.section}" if self.section else self.name
     
     @property
     def display_name(self):
@@ -63,9 +63,12 @@ class Subject(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    # def __str__(self):
-    #     # Now it shows: "Mathematics (Class 10)"
-    #     return f"{self.name} ({self.standard.name} {self.curriculum_version})"
+    def __str__(self):
+        return f"{self.name} ({self.standard.display_name})"
+    
+    @property
+    def display_name(self):
+        return f"{self.name} ({self.standard.display_name})"
     
 
 
@@ -93,8 +96,13 @@ class StudentEnrollment(models.Model):
         # Prevent double enrollment in the same year
         unique_together = [('student', 'academic_year'),('standard', 'academic_year', 'roll_number'), ]   
         ordering = ['-academic_year', 'standard']
-    # def __str__(self):
-    #     return f"{self.student}-{self.standard}-{self.roll_number}"
+    
+    def __str__(self):
+        return f"{self.student.full_name} - {self.standard.display_name} ({self.roll_number})"
+    
+    @property
+    def display_name(self):
+        return f"{self.student.full_name} - {self.standard.display_name} ({self.roll_number})"
 
 #Class teacher assignment
 class ClassTeacher(models.Model):
@@ -105,6 +113,9 @@ class ClassTeacher(models.Model):
     class Meta:
         unique_together = ('teacher', 'standard', 'academic_year')
         ordering = ['-academic_year', 'standard']
+    
+    def __str__(self):
+        return f"{self.teacher.full_name} - {self.standard.display_name}"
 
 
 #one subject may have two techers, so correctly modeled this too
@@ -115,5 +126,6 @@ class TeacherSubject(models.Model):
 
     class Meta:
         verbose_name = 'Subject Teacher'
-    # def __str__(self):
-    #     return f"{self.subject} ->> {self.teacher}"
+    
+    def __str__(self):
+        return f"{self.subject.name} -> {self.teacher.full_name}"
