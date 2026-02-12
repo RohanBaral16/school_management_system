@@ -6,7 +6,7 @@ from django.db import transaction
 from faker import Faker
 
 from academics.models import AcademicYear, Standard, Subject, StudentEnrollment, ClassTeacher, TeacherSubject
-from activities.models import Exam, ExamSubject, Result
+from activities.models import Exam, ExamSubject, SubjectResult
 from accounts.models import Student, Teacher
 import nepali_datetime
 
@@ -29,7 +29,7 @@ class Command(BaseCommand):
 
         if options.get("delete"):
             self.stdout.write(self.style.WARNING("Deleting existing data..."))
-            Result.objects.all().delete()
+            SubjectResult.objects.all().delete()
             ExamSubject.objects.all().delete()
             Exam.objects.all().delete()
             TeacherSubject.objects.all().delete()
@@ -181,7 +181,7 @@ class Command(BaseCommand):
                     theory_score = self._random_decimal(full_theory * Decimal("0.4"), full_theory)
                     practical_score = self._random_decimal(full_practical * Decimal("0.4"), full_practical)
 
-                Result.objects.create(
+                SubjectResult.objects.create(
                     student=enrollment,
                     exam_subject=exam_subject,
                     marks_obtained_theory=theory_score,

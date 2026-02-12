@@ -1,17 +1,17 @@
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 from rest_framework.permissions import IsAuthenticated
-from ..models import Result, ExamSubject
-from .serializers import ResultSerializer, ExamSubjectSerializer
+from ..models import SubjectResult, ExamSubject
+from .serializers import SubjectResultSerializer, ExamSubjectSerializer
 from django.db.models import Q
 # Create your views here.
 
 
-class ResultReadOnlyViewSet(ReadOnlyModelViewSet):
-    serializer_class = ResultSerializer
+class SubjectResultReadOnlyViewSet(ReadOnlyModelViewSet):
+    serializer_class = SubjectResultSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        qs = Result.objects.select_related(
+        qs = SubjectResult.objects.select_related(
             'exam_subject__exam',
             'student',
             'student__student',

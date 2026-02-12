@@ -1,9 +1,9 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.db.models import Sum, Avg
-from .models import Result, ResultSummary
+from .models import SubjectResult, StudentResultSummary
 
-@receiver(post_save, sender=Result)
+@receiver(post_save, sender=SubjectResult)
 def update_result_summary(sender, instance, **kwargs):
     print('!!! Signal triggered')
     # 'instance.student' is now a StudentEnrollment object
@@ -13,7 +13,7 @@ def update_result_summary(sender, instance, **kwargs):
     academic_year = enrollment.academic_year
 
     # 1. Fetch all subject results for this student for THIS specific exam
-    results = Result.objects.filter(
+    results = SubjectResult.objects.filter(
         student__student=actual_student, 
         exam_subject__exam=exam
     )
@@ -46,7 +46,7 @@ def update_result_summary(sender, instance, **kwargs):
 
     # 4. Update or Create the Summary
     # We use actual_student so the summary links to the person, not just the enrollment record
-    ResultSummary.objects.update_or_create(
+    StudentResultSummary.objects.update_or_create(
         student=actual_student,
         exam=exam,
         defaults={

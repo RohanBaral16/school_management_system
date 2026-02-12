@@ -90,7 +90,7 @@ class ExamSubject(models.Model):
 # --- RESULTS ---
 
 
-class Result(models.Model):
+class SubjectResult(models.Model):
     student = models.ForeignKey('academics.StudentEnrollment', on_delete=models.CASCADE)
     exam_subject = models.ForeignKey(ExamSubject, on_delete=models.CASCADE)
     marks_obtained_theory = models.DecimalField(max_digits=5, decimal_places=2)
@@ -166,14 +166,14 @@ class Result(models.Model):
     # def __str__(self):
     #     return f"{self.student} - {self.exam_subject.subject.name}: {self.subject_grade}"
     def __str__(self):
-        return f"Result #{self.pk}"
+        return f"SubjectResult #{self.pk}"
     
 
 
 # --- MISSING MODEL (This solves your ImportError) ---
-class ResultSummaryResult(models.Model):
-    resultsummary = models.ForeignKey('activities.ResultSummary', on_delete=models.CASCADE)
-    result = models.ForeignKey('activities.Result', on_delete=models.CASCADE)
+class StudentMarksheet(models.Model):
+    resultsummary = models.ForeignKey('activities.StudentResultSummary', on_delete=models.CASCADE)
+    result = models.ForeignKey('activities.SubjectResult', on_delete=models.CASCADE)
 
     class Meta:
         db_table = 'activities_resultsummary_results'
@@ -185,15 +185,15 @@ class ResultSummaryResult(models.Model):
         return ""
 
 
-class ResultSummary(models.Model):
+class StudentResultSummary(models.Model):
     student = models.ForeignKey('academics.StudentEnrollment', on_delete=models.CASCADE)
     exam = models.ForeignKey(Exam, on_delete=models.CASCADE)
     academic_year = models.ForeignKey('academics.AcademicYear', on_delete=models.PROTECT)
     results = models.ManyToManyField(
-        'activities.Result',
+        'activities.SubjectResult',
         blank=True,
         related_name='summaries',
-        through='activities.ResultSummaryResult',
+        through='activities.StudentMarksheet',
     )
     
     total_marks = models.DecimalField(max_digits=7, decimal_places=2, default=0)
