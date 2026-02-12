@@ -28,8 +28,12 @@ class Attendance(models.Model):
         unique_together = ('date', 'student', 'subject', 'standard')
         verbose_name_plural = "Attendance"
 
-    def __str__(self):
-        return f"{self.student} - {self.date} ({self.status})"
+    # def __str__(self):
+    #     return f"{self.student} - {self.date} ({self.status})"
+    
+    @property
+    def display_name(self):
+        return f"{self.student.student.full_name if hasattr(self.student, 'student') else self.student} - {self.date} ({self.status})"
 
 # --- EXAMS ---
 class Exam(models.Model):
@@ -51,7 +55,11 @@ class Exam(models.Model):
 
     # def __str__(self):
     #     return f"{self.name} ({self.academic_year})"
-    def __str__(self):
+    # def __str__(self):
+    #     return self.name
+    
+    @property
+    def display_name(self):
         return self.name
 
 
@@ -83,8 +91,13 @@ class ExamSubject(models.Model):
 
     # def __str__(self):
     #     return f"{self.exam.name} - {self.exam.academic_year} - {self.subject.standard} - {self.subject.name}"
-    def __str__(self):
-        return f"ExamSubject #{self.pk}"
+    # def __str__(self):
+    #     return f"ExamSubject #{self.pk}"
+    
+    @property
+    def display_name(self):
+        subj_name = self.subject.name if self.subject else "Unknown"
+        return f"{self.exam.name} - {subj_name}"
     
 
 # --- RESULTS ---
@@ -165,8 +178,13 @@ class Result(models.Model):
 
     # def __str__(self):
     #     return f"{self.student} - {self.exam_subject.subject.name}: {self.subject_grade}"
-    def __str__(self):
-        return f"Result #{self.pk}"
+    # def __str__(self):
+    #     return f"Result #{self.pk}"
+    
+    @property
+    def display_name(self):
+        subject_name = self.exam_subject.subject.name if self.exam_subject.subject else "Unknown"
+        return f"{self.student} - {subject_name}: {self.subject_grade}"
     
 
 
@@ -228,8 +246,8 @@ class ResultSummaryResult(models.Model):
         verbose_name = 'Subject Result'
         verbose_name_plural = 'Subject Results'
 
-    def __str__(self):
-        return ""
+    # def __str__(self):
+    #     return ""
 
 
 class ResultSummary(models.Model):
@@ -253,5 +271,9 @@ class ResultSummary(models.Model):
         unique_together = ('student', 'exam')
         verbose_name_plural = "Result Summaries"
 
-    def __str__(self):
-        return f"{self.student} - {self.exam.name}"
+    # def __str__(self):
+    #     return f"{self.student} - {self.exam.name}"
+    
+    @property
+    def display_name(self):
+        return f"{self.student.student.full_name if hasattr(self.student, 'student') else self.student} - {self.exam.name}"

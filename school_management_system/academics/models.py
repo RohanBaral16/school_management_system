@@ -20,7 +20,11 @@ class AcademicYear(models.Model):
         ordering = ['-name']
         verbose_name = "Academic Year"
 
-    def __str__(self):
+    # def __str__(self):
+    #     return self.name
+    
+    @property
+    def display_name(self):
         return self.name
     
 # --- standard ---
@@ -43,6 +47,10 @@ class Standard(models.Model):
 
     # def __str__(self):
     #     return f"{self.name} - {self.section}" if self.section else self.name
+    
+    @property
+    def display_name(self):
+        return f"{self.name} - {self.section}" if self.section else self.name
 
 # --- SUBJECT ---
 class Subject(models.Model):

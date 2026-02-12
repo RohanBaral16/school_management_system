@@ -10,10 +10,20 @@ class StudentEnrollmentInline(admin.TabularInline):
 
 @admin.register(Student)
 class StudentAdmin(admin.ModelAdmin):
-    list_display = ( 'first_name', 'last_name', 'admission_number')
+    list_display = ('first_name', 'last_name', 'admission_number')
     search_fields = ('first_name', 'last_name', 'admission_number')
     inlines = [StudentEnrollmentInline]
+    
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        return queryset.select_related()  # Small table, minimal overhead
 
 @admin.register(Teacher)
 class TeacherAdmin(admin.ModelAdmin):
     list_display = ('first_name', 'last_name', 'designation', 'status')
+    search_fields = ('first_name', 'last_name', 'email')
+    list_filter = ('status',)
+    
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        return queryset.select_related('user')  # Get User data in single query

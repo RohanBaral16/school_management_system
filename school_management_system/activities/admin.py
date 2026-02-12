@@ -260,9 +260,13 @@ def calculate_exam_ranks(modeladmin, request, queryset):
 @admin.register(Exam)
 class ExamAdmin(admin.ModelAdmin):
     list_display = ('name', 'term', 'academic_year', 'is_published')
-    list_select_related = ('academic_year',)
+    list_filter = ('term', 'academic_year', 'is_published')
     inlines = [ExamSubjectInline]
     actions = [process_exam_full_results]
+
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        return queryset.select_related('academic_year')
 
     def get_actions(self, request):
         actions = super().get_actions(request)
@@ -272,10 +276,14 @@ class ExamAdmin(admin.ModelAdmin):
 
 @admin.register(ExamSubject)
 class ExamSubjectAdmin(admin.ModelAdmin):
-    list_display = ('exam', 'subject', 'exam_date')
-    list_select_related = ('exam', 'subject', 'standard')
-    list_filter = ['exam', 'subject', 'standard']
+    list_display = ('exam', 'subject', 'exam_date', 'standard')
+    list_filter = ('exam__academic_year', 'standard', 'subject')
     inlines = [ResultInline]
+    search_fields = ('subject__name', 'exam__name')
+
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        return queryset.select_related('exam', 'exam__academic_year', 'subject', 'standard')
 
 
 @admin.register(Result)
@@ -296,19 +304,23 @@ class ResultAdmin(admin.ModelAdmin):
         'is_pass',
     )
 
-    list_filter = ('exam_subject__exam', 'exam_subject__standard',  'exam_subject__subject', )
+    list_filter = ('exam_subject__exam__academic_year', 'exam_subject__exam', 'exam_subject__standard', 'exam_subject__subject', 'subject_grade')
     search_fields = (
         'student__student__first_name',
         'student__student__last_name',
+        'student__roll_number',
     )
 
-    list_select_related = (
-        'student',
-        'student__student',
-        'student__standard',
-        'exam_subject',
-        'exam_subject__subject',
-    )
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        return queryset.select_related(
+            'student',
+            'student__student',
+            'student__standard',
+            'exam_subject',
+            'exam_subject__exam',
+            'exam_subject__subject',
+        )
 
     @admin.display(description='Total Marks Obtained')
     def total_marks_obtained(self, obj):
@@ -331,7 +343,13 @@ class ResultAdmin(admin.ModelAdmin):
 @admin.register(Attendance)
 class AttendanceAdmin(admin.ModelAdmin):
     list_display = ('date', 'student', 'status', 'standard')
+    list_filter = ('status', 'standard', 'date')
     date_hierarchy = 'date'
+    search_fields = ('student__first_name', 'student__last_name')
+
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        return queryset.select_related('student', 'standard', 'subject')
 
 
 @admin.register(ResultSummary)

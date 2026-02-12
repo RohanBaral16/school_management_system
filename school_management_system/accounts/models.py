@@ -64,5 +64,9 @@ class Teacher(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    def __str__(self):
+    # def __str__(self):
+    #     return f"{self.first_name} {self.last_name}"
+    
+    @property
+    def full_name(self):
         return f"{self.first_name} {self.last_name}"
