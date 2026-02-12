@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.forms.models import BaseInlineFormSet
-from django.db.models import Sum, Avg
+from django.db.models import Sum, Avg, F, Value
+from django.db.models.functions import Concat
 
 from .models import (
     Attendance,
@@ -289,7 +290,7 @@ class ExamSubjectAdmin(admin.ModelAdmin):
 @admin.register(SubjectResult)
 class SubjectResultAdmin(admin.ModelAdmin):
     list_display = (
-        'student',
+        'student_name',
         'get_subject_name',
         'total_marks_obtained',
         'subject_grade',
@@ -313,13 +314,22 @@ class SubjectResultAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
-        return queryset.select_related(
+        # select_related to avoid extra queries for foreign keys
+        qs = queryset.select_related(
             'student',
             'student__student',
             'student__standard',
             'exam_subject',
             'exam_subject__exam',
             'exam_subject__subject',
+        )
+        # annotate a database-built full name to avoid Python concatenation per-row
+        return qs.annotate(
+            student_full_name=Concat(
+                F('student__student__first_name'),
+                Value(' '),
+                F('student__student__last_name'),
+            )
         )
 
     @admin.display(description='Total Marks Obtained')
@@ -339,6 +349,11 @@ class SubjectResultAdmin(admin.ModelAdmin):
         # obj is a SubjectResult instance
         return obj.exam_subject.subject.name  # or obj.student.roll_no depending on your field name
 
+    @admin.display(description='Student')
+    def student_name(self, obj):
+        # Use annotated value when present, fall back to object property
+        return getattr(obj, 'student_full_name', getattr(obj.student.student, 'full_name', str(obj.student)))
+
 
 @admin.register(Attendance)
 class AttendanceAdmin(admin.ModelAdmin):
@@ -355,7 +370,7 @@ class AttendanceAdmin(admin.ModelAdmin):
 @admin.register(StudentResultSummary)
 class StudentResultSummaryAdmin(admin.ModelAdmin):
     list_display = (
-        'student',
+        'student_name',
         'exam',
         'student_standard',
         'academic_year',
@@ -416,6 +431,16 @@ class StudentResultSummaryAdmin(admin.ModelAdmin):
                 'results__exam_subject__subject'
             )
         )
+
+    @admin.display(description='Student')
+    def student_name(self, obj):
+        # If queryset was annotated, use that; otherwise fall back
+        if hasattr(obj, 'student_full_name') and obj.student_full_name:
+            return obj.student_full_name
+        try:
+            return obj.student.student.full_name
+        except Exception:
+            return str(obj.student)
 
     @admin.display(description='Class')
     def student_standard(self, obj):
