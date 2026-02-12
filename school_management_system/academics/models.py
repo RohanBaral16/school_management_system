@@ -41,8 +41,8 @@ class Standard(models.Model):
         unique_together = ('name', 'section')
         verbose_name = 'Class / Standard'
 
-    def __str__(self):
-        return f"{self.name} - {self.section}" if self.section else self.name
+    # def __str__(self):
+    #     return f"{self.name} - {self.section}" if self.section else self.name
 
 # --- SUBJECT ---
 class Subject(models.Model):
@@ -55,9 +55,9 @@ class Subject(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    def __str__(self):
-        # Now it shows: "Mathematics (Class 10)"
-        return f"{self.name} ({self.standard.name} {self.curriculum_version})"
+    # def __str__(self):
+    #     # Now it shows: "Mathematics (Class 10)"
+    #     return f"{self.name} ({self.standard.name} {self.curriculum_version})"
     
 
 
@@ -85,8 +85,8 @@ class StudentEnrollment(models.Model):
         # Prevent double enrollment in the same year
         unique_together = [('student', 'academic_year'),('standard', 'academic_year', 'roll_number'), ]   
         ordering = ['-academic_year', 'standard']
-    def __str__(self):
-        return f"{self.student}-{self.standard}-{self.roll_number}"
+    # def __str__(self):
+    #     return f"{self.student}-{self.standard}-{self.roll_number}"
 
 #Class teacher assignment
 class ClassTeacher(models.Model):
@@ -107,5 +107,5 @@ class TeacherSubject(models.Model):
 
     class Meta:
         verbose_name = 'Subject Teacher'
-    def __str__(self):
-        return f"{self.subject} ->> {self.teacher}"
+    # def __str__(self):
+    #     return f"{self.subject} ->> {self.teacher}"

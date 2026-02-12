@@ -85,6 +85,7 @@ class ExamSubject(models.Model):
     #     return f"{self.exam.name} - {self.exam.academic_year} - {self.subject.standard} - {self.subject.name}"
     def __str__(self):
         return f"ExamSubject #{self.pk}"
+    
 
 # --- RESULTS ---
 
