@@ -1,11 +1,10 @@
 from rest_framework.routers import DefaultRouter
 from django.urls import path, include
-from .views import ResultViewSet, ExamSubjectViewSet
-
+from .views import SubjectResultReadOnlyViewSet, ExamSubjectReadOnlyViewSet
 router = DefaultRouter()
 
-router.register(r'results', ResultViewSet, basename='results')
-router.register(r'examsubject', ExamSubjectViewSet, basename='examsubject')
+router.register(r'results-readonly', SubjectResultReadOnlyViewSet , basename='results-readonly')
+router.register(r'examsubject-readonly', ExamSubjectReadOnlyViewSet, basename='examsubject-readonly')
 
 urlpatterns = [
     path('', include(router.urls))

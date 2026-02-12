@@ -6,8 +6,8 @@ from .models import (
     Attendance,
     Exam,
     ExamSubject,
-    Result,
-    ResultSummary,
+    SubjectResult,
+    StudentResultSummary,
 )
 
 from academics.models import StudentEnrollment, Standard
@@ -39,10 +39,10 @@ class ExamSubjectInline(admin.TabularInline):
 
 
 # ============================================================
-# RESULT INLINE (inside ExamSubject)
+# SUBJECT RESULT INLINE (inside ExamSubject)
 # ============================================================
 
-class ResultFormSet(BaseInlineFormSet):
+class SubjectResultFormSet(BaseInlineFormSet):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -66,9 +66,9 @@ class ResultFormSet(BaseInlineFormSet):
         self.form.base_fields['student'].queryset = enrolled_qs
 
 
-class ResultInline(admin.TabularInline):
-    model = Result
-    formset = ResultFormSet
+class SubjectResultInline(admin.TabularInline):
+    model = SubjectResult
+    formset = SubjectResultFormSet
     fields = (
         'get_roll_no',
         'student',
@@ -97,16 +97,16 @@ class ResultInline(admin.TabularInline):
         
     @admin.display(description="Roll No")
     def get_roll_no(self, obj):
-        # obj is a Result instance
+        # obj is a SubjectResult instance
         return obj.student.roll_number  # or obj.student.roll_no depending on your field name
 
 
 # ============================================================
-# RESULT SUMMARY INLINE (through table)
+# STUDENT RESULT SUMMARY INLINE (through table)
 # ============================================================
 
-class ResultSummaryResultInline(admin.TabularInline):
-    model = ResultSummary.results.through
+class StudentMarksheetInline(admin.TabularInline):
+    model = StudentResultSummary.results.through
     extra = 0
     can_delete = False
     verbose_name = 'Subject Result'
@@ -178,7 +178,7 @@ def process_exam_full_results(modeladmin, request, queryset):
             )
 
             for enrollment in enrollments:
-                results = Result.objects.filter(
+                results = SubjectResult.objects.filter(
                     student=enrollment,
                     exam_subject__exam=exam,
                 )
@@ -196,7 +196,7 @@ def process_exam_full_results(modeladmin, request, queryset):
                 avg_gpa = aggregates['avg_gpa'] or 0
                 has_ng = results.filter(subject_grade='NG').exists()
 
-                summary, _ = ResultSummary.objects.update_or_create(
+                summary, _ = StudentResultSummary.objects.update_or_create(
                     student=enrollment,
                     exam=exam,
                     defaults={
@@ -211,7 +211,7 @@ def process_exam_full_results(modeladmin, request, queryset):
                 total_processed += 1
 
             summaries = (
-                ResultSummary.objects
+                StudentResultSummary.objects
                 .filter(
                     exam=exam,
                     student__standard=standard,
@@ -237,7 +237,7 @@ def calculate_exam_ranks(modeladmin, request, queryset):
     updated = 0
     for exam, standard in groups:
         summaries = (
-            ResultSummary.objects
+            StudentResultSummary.objects
             .filter(exam=exam, student__standard=standard)
             .order_by('-gpa', '-total_marks')
         )
@@ -278,7 +278,7 @@ class ExamAdmin(admin.ModelAdmin):
 class ExamSubjectAdmin(admin.ModelAdmin):
     list_display = ('exam', 'subject', 'exam_date', 'standard')
     list_filter = ('exam__academic_year', 'standard', 'subject')
-    inlines = [ResultInline]
+    inlines = [SubjectResultInline]
     search_fields = ('subject__name', 'exam__name')
 
     def get_queryset(self, request):
@@ -286,8 +286,8 @@ class ExamSubjectAdmin(admin.ModelAdmin):
         return queryset.select_related('exam', 'exam__academic_year', 'subject', 'standard')
 
 
-@admin.register(Result)
-class ResultAdmin(admin.ModelAdmin):
+@admin.register(SubjectResult)
+class SubjectResultAdmin(admin.ModelAdmin):
     list_display = (
         'student',
         'get_subject_name',
@@ -336,7 +336,7 @@ class ResultAdmin(admin.ModelAdmin):
         return actions
     @admin.display(description="Subject")
     def get_subject_name(self, obj):
-        # obj is a Result instance
+        # obj is a SubjectResult instance
         return obj.exam_subject.subject.name  # or obj.student.roll_no depending on your field name
 
 
@@ -352,8 +352,8 @@ class AttendanceAdmin(admin.ModelAdmin):
         return queryset.select_related('student', 'standard', 'subject')
 
 
-@admin.register(ResultSummary)
-class ResultSummaryAdmin(admin.ModelAdmin):
+@admin.register(StudentResultSummary)
+class StudentResultSummaryAdmin(admin.ModelAdmin):
     list_display = (
         'student',
         'exam',
@@ -387,7 +387,7 @@ class ResultSummaryAdmin(admin.ModelAdmin):
         'academic_year',
     )
 
-    inlines = [ResultSummaryResultInline]
+    inlines = [StudentMarksheetInline]
 
     readonly_fields = (
         'student',

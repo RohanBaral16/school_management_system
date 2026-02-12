@@ -1,7 +1,8 @@
 from rest_framework import serializers
-from ..models import Result, ExamSubject
+from ..models import SubjectResult, ExamSubject, StudentResultSummary
 
-class ResultSerializer(serializers.ModelSerializer):
+
+class SubjectResultSerializer(serializers.ModelSerializer):
     student_full_name = serializers.CharField(
         source = "student.student.full_name",
         read_only = True
@@ -14,12 +15,17 @@ class ResultSerializer(serializers.ModelSerializer):
         source = "student.roll_number",
         read_only = True
     )
+    exam_name = serializers.CharField(
+        source = 'exam_subject.exam.name',
+        read_only = True
+    )
     
     class Meta:
-        model = Result
+        model = SubjectResult
         fields = [
             "id",
             "student",
+            "exam_name",
             "student_full_name",
             "exam_subject",
             "subject_name",
@@ -42,8 +48,16 @@ class ExamSubjectSerializer(serializers.ModelSerializer):
         source='standard.name',
         read_only=True
     )
+    exam_name = serializers.CharField(
+        source = 'exam.name',
+        read_only = True
+    )
 
     class Meta:
         model = ExamSubject
         # Include all model fields + custom fields
-        fields = list([f.name for f in model._meta.fields]) + ['subject_name', 'standard_name']
+        fields = list([f.name for f in model._meta.fields]) + ['subject_name', 'standard_name', 'exam_name']
+        
+class StudentResultSummarySerializer(serializers.Serializer):
+    class Meta:
+        model = StudentResultSummary
