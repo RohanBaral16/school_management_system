@@ -170,53 +170,6 @@ class Result(models.Model):
     
 
 
-# class Result(models.Model):
-#     student = models.ForeignKey('accounts.Student', on_delete=models.CASCADE)
-#     exam_subject = models.ForeignKey(ExamSubject, on_delete=models.CASCADE)
-#     marks_obtained_theory = models.DecimalField(max_digits=5, decimal_places=2)
-#     marks_obtained_practical = models.DecimalField(max_digits=5, decimal_places=2, default=0)
-    
-#     # Auto-calculated fields
-#     subject_grade_point = models.DecimalField(max_digits=3, decimal_places=2, editable=False)
-#     subject_grade = models.CharField(max_length=5, editable=False)
-
-#     def save(self, *args, **kwargs):
-#         # 1. Calculate Total Percentage for this subject
-#         theory_fm = self.exam_subject.full_marks_theory
-#         practical_fm = self.exam_subject.full_marks_practical
-#         total_fm = theory_fm + practical_fm
-#         obtained = self.marks_obtained_theory + self.marks_obtained_practical
-        
-#         percentage = (obtained / total_fm) * 100
-
-#         # 2. Nepal CDC Grading Logic
-#         theory_perc = (self.marks_obtained_theory / theory_fm) * 100
-        
-#         if theory_perc < 35:
-#             self.subject_grade = 'NG' 
-#             self.subject_grade_point = 0.00
-#         elif percentage >= 90:
-#             self.subject_grade, self.subject_grade_point = 'A+', 4.0
-#         elif percentage >= 80:
-#             self.subject_grade, self.subject_grade_point = 'A', 3.6
-#         elif percentage >= 70:
-#             self.subject_grade, self.subject_grade_point = 'B+', 3.2
-#         elif percentage >= 60:
-#             self.subject_grade, self.subject_grade_point = 'B', 2.8
-#         elif percentage >= 50:
-#             self.subject_grade, self.subject_grade_point = 'C+', 2.4
-#         elif percentage >= 40:
-#             self.subject_grade, self.subject_grade_point = 'C', 2.0
-#         elif percentage >= 35:
-#             self.subject_grade, self.subject_grade_point = 'D', 1.6
-#         else:
-#             self.subject_grade, self.subject_grade_point = 'NG', 0.0
-            
-#         super().save(*args, **kwargs)
-
-#     class Meta:
-#         unique_together = ('student', 'exam_subject')
-
 # --- MISSING MODEL (This solves your ImportError) ---
 class ResultSummaryResult(models.Model):
     resultsummary = models.ForeignKey('activities.ResultSummary', on_delete=models.CASCADE)
