@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'debug_toolbar',
     'nepali_datetime_field',
     'rest_framework',
+    'django_filters',
     #apps in the project
     'accounts',
     'academics',
@@ -131,3 +132,9 @@ STATIC_URL = 'static/'
 INTERNAL_IPS = [
     "127.0.0.1",
 ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend',
+    ]
+}

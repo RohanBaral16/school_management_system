@@ -57,7 +57,17 @@ class ExamSubjectSerializer(serializers.ModelSerializer):
         model = ExamSubject
         # Include all model fields + custom fields
         fields = list([f.name for f in model._meta.fields]) + ['subject_name', 'standard_name', 'exam_name']
-        
+
+
+     
 class StudentResultSummarySerializer(serializers.Serializer):
+    student_name = serializers.CharField(
+        source = 'student.student.full_name',
+        read_only = True
+    )
+    exam_name = serializers.CharField(
+        source = 'exam.name'
+    )
+    
     class Meta:
         model = StudentResultSummary
