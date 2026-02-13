@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'nepali_datetime_field',
     'rest_framework',
     'django_filters',
+    'drf_yasg',
     #apps in the project
     'accounts',
     'academics',
