@@ -113,6 +113,7 @@ class StudentMarksheetInline(admin.TabularInline):
     verbose_name_plural = 'Subject Results'
 
     fields = (
+        'id',
         'subject_name',
         'marks_obtained_theory',
         'marks_obtained_practical',
@@ -337,6 +338,7 @@ class AttendanceAdmin(admin.ModelAdmin):
 @admin.register(StudentResultSummary)
 class StudentResultSummaryAdmin(admin.ModelAdmin):
     list_display = (
+        'id',
         'student',
         'exam',
         'student_standard',
@@ -372,6 +374,7 @@ class StudentResultSummaryAdmin(admin.ModelAdmin):
     inlines = [StudentMarksheetInline]
 
     readonly_fields = (
+        'id',
         'student',
         'exam',
         'academic_year',

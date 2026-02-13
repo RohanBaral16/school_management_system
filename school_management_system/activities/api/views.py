@@ -1,79 +1,107 @@
-from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
+from rest_framework.viewsets import ReadOnlyModelViewSet
 from rest_framework.permissions import IsAuthenticated
-from ..models import SubjectResult, ExamSubject
-from .serializers import SubjectResultSerializer, ExamSubjectSerializer
-from django.db.models import Q
-# Create your views here.
+from django.db.models import Prefetch
+
+from ..models import SubjectResult, ExamSubject, StudentResultSummary, Attendance, Exam, StudentMarksheet
+from .serializers import (
+    SubjectResultSerializer,
+    ExamSubjectSerializer,
+    StudentResultSummarySerializer,
+    ExamSerializer,
+    AttendanceSerializer,
+    StudentMarksheetSerializer,
+)
+from .filters import SubjectResultFilter, ExamSubjectFilter, StudentResultSummaryFilter, StudentMarksheetFilter
+
+
+class ExamReadOnlyViewSet(ReadOnlyModelViewSet):
+    serializer_class = ExamSerializer
+    permission_classes = [IsAuthenticated]
+    queryset = Exam.objects.select_related('academic_year')
+
+
+class AttendanceReadOnlyViewSet(ReadOnlyModelViewSet):
+    serializer_class = AttendanceSerializer
+    permission_classes = [IsAuthenticated]
+    queryset = Attendance.objects.select_related(
+        'student',
+        'standard',
+        'subject__standard',
+        'recorded_by',
+        'academic_year',
+    )
+
+
+class StudentMarksheetReadOnlyViewSet(ReadOnlyModelViewSet):
+    serializer_class = StudentMarksheetSerializer
+    permission_classes = [IsAuthenticated]
+    filterset_class = StudentMarksheetFilter
+    queryset = StudentMarksheet.objects.select_related(
+        'resultsummary',
+        'resultsummary__student',
+        'resultsummary__student__student',
+        'resultsummary__student__standard',
+        'resultsummary__exam',
+        'result',
+        'result__exam_subject',
+        'result__exam_subject__subject',
+    )
 
 
 class SubjectResultReadOnlyViewSet(ReadOnlyModelViewSet):
     serializer_class = SubjectResultSerializer
     permission_classes = [IsAuthenticated]
+    filterset_class = SubjectResultFilter
 
     def get_queryset(self):
-        qs = SubjectResult.objects.select_related(
-            'exam_subject__exam',
-            'student',
+        return SubjectResult.objects.select_related(
+            'exam_subject__exam__academic_year',
+            'exam_subject__subject__standard',
+            'exam_subject__standard',
             'student__student',
             'student__standard',
-            'exam_subject',
-            'exam_subject__subject',
-            'exam_subject__exam',
+            'student__academic_year',
         )
 
-        # ID-based filters
-        student_id = self.request.query_params.get("student")
-        exam_id = self.request.query_params.get("exam")
-        subject_id = self.request.query_params.get("subject")
-        standard_id = self.request.query_params.get("standard")
 
-        # Name-based filters
-        student_name = self.request.query_params.get("student_name")
-        subject_name = self.request.query_params.get("subject_name")
-
-        if student_id:
-            qs = qs.filter(student_id=student_id)
-
-        if exam_id:
-            qs = qs.filter(exam_subject__exam_id=exam_id)
-
-        if subject_id:
-            qs = qs.filter(exam_subject__subject_id=subject_id)
-
-        if standard_id:
-            qs = qs.filter(student__standard_id=standard_id)
-
-        # Partial name search (case insensitive)
-        if student_name:
-            qs = qs.filter(
-                Q(student__student__first_name__icontains=student_name) | Q(student__student__last_name__icontains=student_name)
-    )
-
-        if subject_name:
-            qs = qs.filter(
-                exam_subject__subject__name__icontains=subject_name
-            )
-
-        return qs
-        
-        
 class ExamSubjectReadOnlyViewSet(ReadOnlyModelViewSet):
     serializer_class = ExamSubjectSerializer
     permission_classes = [IsAuthenticated]
-    
+    filterset_class = ExamSubjectFilter
+
     def get_queryset(self):
-        qs =  ExamSubject.objects.all().select_related(
+        return ExamSubject.objects.select_related(
             'exam',
+            'exam__academic_year',
             'subject',
-            'standard'
+            'subject__standard',
+            'standard',
         )
-        exam = self.request.query_params.get('exam')
-        standard = self.request.query_params.get('standard')
-        subject = self.request.query_params.get('subject')
-        if exam:
-            qs = qs.filter(exam = exam)
-        if standard:
-            qs = qs.filter(standard = standard)
-        if subject:
-            qs = qs.filter(subject = subject)
-        return qs
+
+
+class StudentResultSummaryReadOnlyViewSet(ReadOnlyModelViewSet):
+    serializer_class = StudentResultSummarySerializer
+    permission_classes = [IsAuthenticated]
+    filterset_class = StudentResultSummaryFilter
+
+    def get_queryset(self):
+        # Prefetch SubjectResults with all their nested relationships
+        results_prefetch = Prefetch(
+            'results',
+            SubjectResult.objects.select_related(
+                'exam_subject__exam__academic_year',
+                'exam_subject__subject__standard',
+                'exam_subject__standard',
+                'student__student',
+                'student__standard',
+                'student__academic_year',
+            ),
+        )
+
+        return StudentResultSummary.objects.select_related(
+            'student__student',
+            'student__standard',
+            'student__academic_year',
+            'exam__academic_year',
+            'academic_year',
+        ).prefetch_related(results_prefetch)

@@ -1,73 +1,321 @@
 from rest_framework import serializers
-from ..models import SubjectResult, ExamSubject, StudentResultSummary
+
+from academics.api.serializers import (
+    StudentEnrollmentSerializer,
+    StandardSerializer,
+    AcademicYearSerializer,
+)
+from accounts.api.serializers import StudentSerializer, TeacherSerializer
+from ..models import SubjectResult, ExamSubject, StudentResultSummary, Attendance, Exam, StudentMarksheet
+from academics.models import ClassTeacher
 
 
-class SubjectResultSerializer(serializers.ModelSerializer):
-    student_full_name = serializers.CharField(
-        source = "student.student.full_name",
-        read_only = True
+class ExamSerializer(serializers.ModelSerializer):
+    academic_year = AcademicYearSerializer(read_only=True)
+    academic_year_id = serializers.PrimaryKeyRelatedField(
+        source='academic_year',
+        queryset=Exam.objects.none(),
+        write_only=True,
     )
-    subject_name = serializers.CharField(
-        source = "exam_subject.subject.name",
-        read_only = True
-    )
-    student_roll_number = serializers.CharField(
-        source = "student.roll_number",
-        read_only = True
-    )
-    exam_name = serializers.CharField(
-        source = 'exam_subject.exam.name',
-        read_only = True
-    )
-    
+
     class Meta:
-        model = SubjectResult
+        model = Exam
         fields = [
-            "id",
-            "student",
-            "exam_name",
-            "student_full_name",
-            "exam_subject",
-            "subject_name",
-            "marks_obtained_theory",
-            "marks_obtained_practical",
-            "student_roll_number"
+            'id',
+            'name',
+            'term',
+            'academic_year',
+            'academic_year_id',
+            'start_date',
+            'end_date',
+            'is_published',
+            'created_at',
         ]
-        read_only_fields = [
-            "subject_grade",
-            "subject_grade_point"
+
+
+class AttendanceSerializer(serializers.ModelSerializer):
+    student = StudentSerializer(read_only=True)
+    student_id = serializers.PrimaryKeyRelatedField(
+        source='student',
+        queryset=StudentSerializer.Meta.model.objects.all(),
+        write_only=True,
+    )
+    standard = StandardSerializer(read_only=True)
+    standard_id = serializers.PrimaryKeyRelatedField(
+        source='standard',
+        queryset=StandardSerializer.Meta.model.objects.all(),
+        write_only=True,
+    )
+    subject = serializers.SerializerMethodField(read_only=True)
+    subject_id = serializers.IntegerField(write_only=True, required=False)
+    recorded_by = TeacherSerializer(read_only=True)
+    recorded_by_id = serializers.PrimaryKeyRelatedField(
+        source='recorded_by',
+        queryset=TeacherSerializer.Meta.model.objects.all(),
+        write_only=True,
+        required=False,
+    )
+    academic_year = AcademicYearSerializer(read_only=True)
+    academic_year_id = serializers.PrimaryKeyRelatedField(
+        source='academic_year',
+        queryset=AcademicYearSerializer.Meta.model.objects.all(),
+        write_only=True,
+    )
+
+    def get_subject(self, obj):
+        from academics.api.serializers import SubjectSerializer
+        return SubjectSerializer(obj.subject, read_only=True).data if obj.subject else None
+
+    class Meta:
+        model = Attendance
+        fields = [
+            'id',
+            'date',
+            'student',
+            'student_id',
+            'standard',
+            'standard_id',
+            'subject',
+            'subject_id',
+            'status',
+            'recorded_by',
+            'recorded_by_id',
+            'academic_year',
+            'academic_year_id',
+            'remarks',
         ]
-        
+
+
 class ExamSubjectSerializer(serializers.ModelSerializer):
-    # Custom fields for nested info
-    subject_name = serializers.CharField(
-        source='subject.name',
-        read_only=True
+    exam = ExamSerializer(read_only=True)
+    exam_id = serializers.PrimaryKeyRelatedField(
+        source='exam',
+        queryset=Exam.objects.all(),
+        write_only=True,
     )
-    standard_name = serializers.CharField(
-        source='standard.name',
-        read_only=True
-    )
-    exam_name = serializers.CharField(
-        source = 'exam.name',
-        read_only = True
-    )
+    subject = serializers.SerializerMethodField(read_only=True)
+    subject_id = serializers.IntegerField(write_only=True, required=False)
+    standard = StandardSerializer(read_only=True)
+    standard_id = serializers.IntegerField(write_only=True, required=False)
+
+    def get_subject(self, obj):
+        from academics.api.serializers import SubjectSerializer
+        return SubjectSerializer(obj.subject, read_only=True).data if obj.subject else None
 
     class Meta:
         model = ExamSubject
-        # Include all model fields + custom fields
-        fields = list([f.name for f in model._meta.fields]) + ['subject_name', 'standard_name', 'exam_name']
+        fields = [
+            'id',
+            'exam',
+            'exam_id',
+            'subject',
+            'subject_id',
+            'standard',
+            'standard_id',
+            'exam_date',
+            'full_marks_theory',
+            'pass_marks_theory',
+            'full_marks_practical',
+            'pass_marks_practical',
+        ]
 
 
-     
-class StudentResultSummarySerializer(serializers.Serializer):
-    student_name = serializers.CharField(
-        source = 'student.student.full_name',
-        read_only = True
+class SubjectResultSerializer(serializers.ModelSerializer):
+    student = StudentEnrollmentSerializer(read_only=True)
+    student_id = serializers.PrimaryKeyRelatedField(
+        source='student',
+        queryset=StudentResultSummary.objects.none(),
+        write_only=True,
     )
-    exam_name = serializers.CharField(
-        source = 'exam.name'
+    exam_subject = ExamSubjectSerializer(read_only=True)
+    exam_subject_id = serializers.PrimaryKeyRelatedField(
+        source='exam_subject',
+        queryset=ExamSubject.objects.all(),
+        write_only=True,
     )
-    
+
+    class Meta:
+        model = SubjectResult
+        fields = [
+            'id',
+            'student',
+            'student_id',
+            'exam_subject',
+            'exam_subject_id',
+            'marks_obtained_theory',
+            'marks_obtained_practical',
+            'subject_grade',
+            'subject_grade_point',
+        ]
+        read_only_fields = ['subject_grade', 'subject_grade_point']
+
+
+class StudentResultSummarySerializer(serializers.ModelSerializer):
+    student = StudentEnrollmentSerializer(read_only=True)
+    student_id = serializers.PrimaryKeyRelatedField(
+        source='student',
+        queryset=StudentResultSummary.objects.none(),
+        write_only=True,
+    )
+    exam = ExamSerializer(read_only=True)
+    exam_id = serializers.PrimaryKeyRelatedField(
+        source='exam',
+        queryset=Exam.objects.all(),
+        write_only=True,
+    )
+    academic_year = AcademicYearSerializer(read_only=True)
+    academic_year_id = serializers.PrimaryKeyRelatedField(
+        source='academic_year',
+        queryset=StudentResultSummary.objects.none(),
+        write_only=True,
+    )
+    results = SubjectResultSerializer(many=True, read_only=True)
+
     class Meta:
         model = StudentResultSummary
+        fields = [
+            'id',
+            'student',
+            'student_id',
+            'exam',
+            'exam_id',
+            'academic_year',
+            'academic_year_id',
+            'total_marks',
+            'percentage',
+            'gpa',
+            'overall_grade',
+            'rank',
+            'results',
+        ]
+        read_only_fields = ['results', 'total_marks', 'percentage', 'gpa', 'overall_grade', 'rank']
+
+
+class StudentMarksheetSerializer(serializers.ModelSerializer):
+    student_id = serializers.IntegerField(source='resultsummary.student.student.id', read_only=True)
+    student_enrollment_id = serializers.IntegerField(source='resultsummary.student.id', read_only=True)
+    student_full_name = serializers.CharField(source='resultsummary.student.student.full_name', read_only=True)
+    standard_id = serializers.IntegerField(source='resultsummary.student.standard.id', read_only=True)
+    standard = serializers.SerializerMethodField(read_only=True)
+    roll_no = serializers.CharField(source='resultsummary.student.roll_number', read_only=True)
+
+    exam_id = serializers.IntegerField(source='resultsummary.exam.id', read_only=True)
+    exam_name = serializers.CharField(source='resultsummary.exam.name', read_only=True)
+
+    subject_id = serializers.IntegerField(source='result.exam_subject.subject.id', read_only=True)
+    subject_name = serializers.CharField(source='result.exam_subject.subject.name', read_only=True)
+    full_marks_theory = serializers.DecimalField(
+        source='result.exam_subject.full_marks_theory',
+        max_digits=5,
+        decimal_places=2,
+        read_only=True,
+    )
+    pass_marks_theory = serializers.DecimalField(
+        source='result.exam_subject.pass_marks_theory',
+        max_digits=5,
+        decimal_places=2,
+        read_only=True,
+    )
+    full_marks_practical = serializers.DecimalField(
+        source='result.exam_subject.full_marks_practical',
+        max_digits=5,
+        decimal_places=2,
+        read_only=True,
+    )
+    pass_marks_practical = serializers.DecimalField(
+        source='result.exam_subject.pass_marks_practical',
+        max_digits=5,
+        decimal_places=2,
+        read_only=True,
+    )
+    marks_obtained_theory = serializers.DecimalField(
+        source='result.marks_obtained_theory',
+        max_digits=5,
+        decimal_places=2,
+        read_only=True,
+    )
+    marks_obtained_practical = serializers.DecimalField(
+        source='result.marks_obtained_practical',
+        max_digits=5,
+        decimal_places=2,
+        read_only=True,
+    )
+    subject_grade = serializers.CharField(source='result.subject_grade', read_only=True)
+    subject_grade_point = serializers.DecimalField(
+        source='result.subject_grade_point',
+        max_digits=3,
+        decimal_places=2,
+        read_only=True,
+    )
+
+    summary_gpa = serializers.DecimalField(
+        source='resultsummary.gpa',
+        max_digits=3,
+        decimal_places=2,
+        read_only=True,
+        allow_null=True,
+    )
+    summary_overall_grade = serializers.CharField(source='resultsummary.overall_grade', read_only=True)
+    summary_rank = serializers.IntegerField(source='resultsummary.rank', read_only=True, allow_null=True)
+
+    class_teacher_id = serializers.SerializerMethodField(read_only=True)
+    class_teacher_name = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = StudentMarksheet
+        fields = [
+            'id',
+            'student_id',
+            'student_enrollment_id',
+            'student_full_name',
+            'standard_id',
+            'standard',
+            'roll_no',
+            'exam_id',
+            'exam_name',
+            'subject_id',
+            'subject_name',
+            'full_marks_theory',
+            'pass_marks_theory',
+            'full_marks_practical',
+            'pass_marks_practical',
+            'marks_obtained_theory',
+            'marks_obtained_practical',
+            'subject_grade',
+            'subject_grade_point',
+            'summary_gpa',
+            'summary_overall_grade',
+            'summary_rank',
+            'class_teacher_id',
+            'class_teacher_name',
+        ]
+
+    def get_standard(self, obj):
+        standard = obj.resultsummary.student.standard
+        if not standard:
+            return None
+        return f"{standard.name} {standard.section}".strip()
+
+    def _get_class_teacher(self, obj):
+        cache = self.context.setdefault('_class_teacher_cache', {})
+        standard_id = obj.resultsummary.student.standard_id
+        academic_year_id = obj.resultsummary.student.academic_year_id
+        key = (standard_id, academic_year_id)
+
+        if key not in cache:
+            cache[key] = (
+                ClassTeacher.objects
+                .select_related('teacher')
+                .filter(standard_id=standard_id, academic_year_id=academic_year_id)
+                .first()
+            )
+
+        return cache[key]
+
+    def get_class_teacher_id(self, obj):
+        class_teacher = self._get_class_teacher(obj)
+        return class_teacher.teacher_id if class_teacher else None
+
+    def get_class_teacher_name(self, obj):
+        class_teacher = self._get_class_teacher(obj)
+        return class_teacher.teacher.full_name if class_teacher else None
