@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.forms.models import BaseInlineFormSet
-from django.db.models import Sum, Avg
+from django.db.models import Sum, Avg, F, Value
+from django.db.models.functions import Concat
 
 from .models import (
     Attendance,
@@ -260,9 +261,13 @@ def calculate_exam_ranks(modeladmin, request, queryset):
 @admin.register(Exam)
 class ExamAdmin(admin.ModelAdmin):
     list_display = ('name', 'term', 'academic_year', 'is_published')
-    list_select_related = ('academic_year',)
+    list_filter = ('term', 'academic_year', 'is_published')
     inlines = [ExamSubjectInline]
     actions = [process_exam_full_results]
+
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        return queryset.select_related('academic_year')
 
     def get_actions(self, request):
         actions = super().get_actions(request)
@@ -272,16 +277,20 @@ class ExamAdmin(admin.ModelAdmin):
 
 @admin.register(ExamSubject)
 class ExamSubjectAdmin(admin.ModelAdmin):
-    list_display = ('exam', 'subject', 'exam_date')
-    list_select_related = ('exam', 'subject', 'standard')
-    list_filter = ['exam', 'subject', 'standard']
+    list_display = ('exam', 'subject', 'exam_date', 'standard')
+    list_filter = ('exam__academic_year', 'standard', 'subject')
     inlines = [SubjectResultInline]
+    search_fields = ('subject__name', 'exam__name')
+
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        return queryset.select_related('exam', 'exam__academic_year', 'subject', 'standard')
 
 
 @admin.register(SubjectResult)
 class SubjectResultAdmin(admin.ModelAdmin):
     list_display = (
-        'student',
+        'student_name',
         'get_subject_name',
         'total_marks_obtained',
         'subject_grade',
@@ -296,19 +305,32 @@ class SubjectResultAdmin(admin.ModelAdmin):
         'is_pass',
     )
 
-    list_filter = ('exam_subject__exam', 'exam_subject__standard',  'exam_subject__subject', )
+    list_filter = ('exam_subject__exam__academic_year', 'exam_subject__exam', 'exam_subject__standard', 'exam_subject__subject', 'subject_grade')
     search_fields = (
         'student__student__first_name',
         'student__student__last_name',
+        'student__roll_number',
     )
 
-    list_select_related = (
-        'student',
-        'student__student',
-        'student__standard',
-        'exam_subject',
-        'exam_subject__subject',
-    )
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        # select_related to avoid extra queries for foreign keys
+        qs = queryset.select_related(
+            'student',
+            'student__student',
+            'student__standard',
+            'exam_subject',
+            'exam_subject__exam',
+            'exam_subject__subject',
+        )
+        # annotate a database-built full name to avoid Python concatenation per-row
+        return qs.annotate(
+            student_full_name=Concat(
+                F('student__student__first_name'),
+                Value(' '),
+                F('student__student__last_name'),
+            )
+        )
 
     @admin.display(description='Total Marks Obtained')
     def total_marks_obtained(self, obj):
@@ -327,17 +349,28 @@ class SubjectResultAdmin(admin.ModelAdmin):
         # obj is a SubjectResult instance
         return obj.exam_subject.subject.name  # or obj.student.roll_no depending on your field name
 
+    @admin.display(description='Student')
+    def student_name(self, obj):
+        # Use annotated value when present, fall back to object property
+        return getattr(obj, 'student_full_name', getattr(obj.student.student, 'full_name', str(obj.student)))
+
 
 @admin.register(Attendance)
 class AttendanceAdmin(admin.ModelAdmin):
     list_display = ('date', 'student', 'status', 'standard')
+    list_filter = ('status', 'standard', 'date')
     date_hierarchy = 'date'
+    search_fields = ('student__first_name', 'student__last_name')
+
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        return queryset.select_related('student', 'standard', 'subject')
 
 
 @admin.register(StudentResultSummary)
 class StudentResultSummaryAdmin(admin.ModelAdmin):
     list_display = (
-        'student',
+        'student_name',
         'exam',
         'student_standard',
         'academic_year',
@@ -398,6 +431,16 @@ class StudentResultSummaryAdmin(admin.ModelAdmin):
                 'results__exam_subject__subject'
             )
         )
+
+    @admin.display(description='Student')
+    def student_name(self, obj):
+        # If queryset was annotated, use that; otherwise fall back
+        if hasattr(obj, 'student_full_name') and obj.student_full_name:
+            return obj.student_full_name
+        try:
+            return obj.student.student.full_name
+        except Exception:
+            return str(obj.student)
 
     @admin.display(description='Class')
     def student_standard(self, obj):

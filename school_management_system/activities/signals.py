@@ -5,7 +5,6 @@ from .models import SubjectResult, StudentResultSummary
 
 @receiver(post_save, sender=SubjectResult)
 def update_result_summary(sender, instance, **kwargs):
-    print('!!! Signal triggered')
     # 'instance.student' is now a StudentEnrollment object
     enrollment = instance.student 
     actual_student = enrollment.student # The underlying Student model
@@ -14,7 +13,7 @@ def update_result_summary(sender, instance, **kwargs):
 
     # 1. Fetch all subject results for this student for THIS specific exam
     results = SubjectResult.objects.filter(
-        student__student=actual_student, 
+        student=enrollment, 
         exam_subject__exam=exam
     )
     
@@ -45,9 +44,9 @@ def update_result_summary(sender, instance, **kwargs):
         else: overall = 'D'
 
     # 4. Update or Create the Summary
-    # We use actual_student so the summary links to the person, not just the enrollment record
+    # We use enrollment (StudentEnrollment) not actual_student (Student)
     StudentResultSummary.objects.update_or_create(
-        student=actual_student,
+        student=enrollment,
         exam=exam,
         defaults={
             'academic_year': academic_year,
