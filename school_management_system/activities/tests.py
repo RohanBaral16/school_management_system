@@ -143,7 +143,13 @@ class StudentResultSummaryTestCase(TestCase):
     
     def test_no_m2m_field_exists(self):
         """Test that the M2M field no longer exists."""
+        # Check that the attribute doesn't exist on the instance
         self.assertFalse(hasattr(self.summary, 'results'))
+        
+        # Check at the model meta level that the field has been removed
+        field_names = [f.name for f in StudentResultSummary._meta.get_fields()]
+        self.assertNotIn('results', field_names)
+        
         # But the method should exist
         self.assertTrue(hasattr(self.summary, 'get_subject_results'))
 

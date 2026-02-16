@@ -286,6 +286,8 @@ class MarksheetDetailSerializer(serializers.Serializer):
         key = (obj.student_id, obj.exam_subject.exam_id)
         
         if key not in cache:
+            # If we're serializing multiple objects, we might want to bulk fetch summaries
+            # For now, we fetch individually but cache the result
             cache[key] = StudentResultSummary.objects.filter(
                 student_id=obj.student_id,
                 exam_id=obj.exam_subject.exam_id

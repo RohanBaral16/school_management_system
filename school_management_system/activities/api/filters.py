@@ -73,15 +73,22 @@ class MarksheetDetailFilter(django_filters.FilterSet):
     student_full_name = django_filters.CharFilter(method='filter_student_full_name')
 
     def filter_resultsummary_id(self, queryset, name, value):
-        """Filter by result summary ID by finding matching student and exam."""
-        try:
-            summary = StudentResultSummary.objects.get(id=value)
-            return queryset.filter(
-                student=summary.student,
-                exam_subject__exam=summary.exam
-            )
-        except StudentResultSummary.DoesNotExist:
+        """
+        Filter by result summary ID by finding matching student and exam.
+        Optimized to use a subquery instead of fetching the summary first.
+        """
+        from django.db.models import Subquery, OuterRef
+        
+        # Use subquery to get student and exam IDs without extra query
+        summary_subquery = StudentResultSummary.objects.filter(id=value)
+        
+        if not summary_subquery.exists():
             return queryset.none()
+        
+        return queryset.filter(
+            student_id__in=summary_subquery.values('student_id'),
+            exam_subject__exam_id__in=summary_subquery.values('exam_id')
+        )
 
     def filter_student_full_name(self, queryset, name, value):
         parts = value.strip().split()

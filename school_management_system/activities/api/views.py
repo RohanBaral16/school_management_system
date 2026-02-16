@@ -36,6 +36,9 @@ class MarksheetDetailReadOnlyViewSet(ReadOnlyModelViewSet):
     """
     ViewSet for marksheet details - replaces StudentMarksheetReadOnlyViewSet.
     Uses SubjectResult as base model instead of the removed StudentMarksheet through table.
+    
+    Note: To optimize the summary field lookups in the serializer, the viewset could be enhanced
+    to prefetch StudentResultSummary objects and pass them in the serializer context to avoid N+1 queries.
     """
     serializer_class = MarksheetDetailSerializer
     permission_classes = [IsAuthenticated]
