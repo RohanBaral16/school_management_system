@@ -170,31 +170,10 @@ class SubjectResult(models.Model):
     
 
 
-# --- MISSING MODEL (This solves your ImportError) ---
-class StudentMarksheet(models.Model):
-    resultsummary = models.ForeignKey('activities.StudentResultSummary', on_delete=models.CASCADE)
-    result = models.ForeignKey('activities.SubjectResult', on_delete=models.CASCADE)
-
-    class Meta:
-        db_table = 'activities_resultsummary_results'
-        managed = False
-        verbose_name = 'Subject Result'
-        verbose_name_plural = 'Subject Results'
-
-    def __str__(self):
-        return ""
-
-
 class StudentResultSummary(models.Model):
     student = models.ForeignKey('academics.StudentEnrollment', on_delete=models.CASCADE)
     exam = models.ForeignKey(Exam, on_delete=models.CASCADE)
     academic_year = models.ForeignKey('academics.AcademicYear', on_delete=models.PROTECT)
-    results = models.ManyToManyField(
-        'activities.SubjectResult',
-        blank=True,
-        related_name='summaries',
-        through='activities.StudentMarksheet',
-    )
     
     total_marks = models.DecimalField(max_digits=7, decimal_places=2, default=0)
     percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0)
@@ -208,3 +187,13 @@ class StudentResultSummary(models.Model):
 
     def __str__(self):
         return f"{self.student} - {self.exam.name}"
+    
+    def get_subject_results(self):
+        """
+        Dynamically fetch subject results for this student and exam.
+        This replaces the old M2M relationship.
+        """
+        return SubjectResult.objects.filter(
+            student=self.student,
+            exam_subject__exam=self.exam
+        )

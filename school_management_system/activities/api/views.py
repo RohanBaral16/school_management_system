@@ -2,16 +2,16 @@ from rest_framework.viewsets import ReadOnlyModelViewSet
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Prefetch
 
-from ..models import SubjectResult, ExamSubject, StudentResultSummary, Attendance, Exam, StudentMarksheet
+from ..models import SubjectResult, ExamSubject, StudentResultSummary, Attendance, Exam
 from .serializers import (
     SubjectResultSerializer,
     ExamSubjectSerializer,
     StudentResultSummarySerializer,
     ExamSerializer,
     AttendanceSerializer,
-    StudentMarksheetSerializer,
+    MarksheetDetailSerializer,
 )
-from .filters import SubjectResultFilter, ExamSubjectFilter, StudentResultSummaryFilter, StudentMarksheetFilter
+from .filters import SubjectResultFilter, ExamSubjectFilter, StudentResultSummaryFilter, MarksheetDetailFilter
 
 
 class ExamReadOnlyViewSet(ReadOnlyModelViewSet):
@@ -32,20 +32,25 @@ class AttendanceReadOnlyViewSet(ReadOnlyModelViewSet):
     )
 
 
-class StudentMarksheetReadOnlyViewSet(ReadOnlyModelViewSet):
-    serializer_class = StudentMarksheetSerializer
+class MarksheetDetailReadOnlyViewSet(ReadOnlyModelViewSet):
+    """
+    ViewSet for marksheet details - replaces StudentMarksheetReadOnlyViewSet.
+    Uses SubjectResult as base model instead of the removed StudentMarksheet through table.
+    """
+    serializer_class = MarksheetDetailSerializer
     permission_classes = [IsAuthenticated]
-    filterset_class = StudentMarksheetFilter
-    queryset = StudentMarksheet.objects.select_related(
-        'resultsummary',
-        'resultsummary__student',
-        'resultsummary__student__student',
-        'resultsummary__student__standard',
-        'resultsummary__exam',
-        'result',
-        'result__exam_subject',
-        'result__exam_subject__subject',
-    )
+    filterset_class = MarksheetDetailFilter
+    
+    def get_queryset(self):
+        return SubjectResult.objects.select_related(
+            'student',
+            'student__student',
+            'student__standard',
+            'student__academic_year',
+            'exam_subject',
+            'exam_subject__exam',
+            'exam_subject__subject',
+        )
 
 
 class SubjectResultReadOnlyViewSet(ReadOnlyModelViewSet):
@@ -85,23 +90,12 @@ class StudentResultSummaryReadOnlyViewSet(ReadOnlyModelViewSet):
     filterset_class = StudentResultSummaryFilter
 
     def get_queryset(self):
-        # Prefetch SubjectResults with all their nested relationships
-        results_prefetch = Prefetch(
-            'results',
-            SubjectResult.objects.select_related(
-                'exam_subject__exam__academic_year',
-                'exam_subject__subject__standard',
-                'exam_subject__standard',
-                'student__student',
-                'student__standard',
-                'student__academic_year',
-            ),
-        )
-
+        # No need to prefetch results anymore since we use SerializerMethodField
+        # The serializer will handle fetching results dynamically with proper select_related
         return StudentResultSummary.objects.select_related(
             'student__student',
             'student__standard',
             'student__academic_year',
             'exam__academic_year',
             'academic_year',
-        ).prefetch_related(results_prefetch)
+        )
