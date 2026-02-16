@@ -20,8 +20,13 @@ class AcademicYear(models.Model):
         ordering = ['-name']
         verbose_name = "Academic Year"
 
-    def __str__(self):
-        return self.name
+    # def __str__(self):
+    #     return self.name
+    
+    def display_name(self):
+        """Display method for academic year"""
+        status_icon = "✓" if self.is_current else ""
+        return f"{self.name} {status_icon}".strip()
     
 # --- standard ---
 class Standard(models.Model):
@@ -43,6 +48,10 @@ class Standard(models.Model):
 
     # def __str__(self):
     #     return f"{self.name} - {self.section}" if self.section else self.name
+    
+    def display_name(self):
+        """Display method for standard"""
+        return f"{self.name} - {self.section}" if self.section else self.name
 
 # --- SUBJECT ---
 class Subject(models.Model):
@@ -58,6 +67,10 @@ class Subject(models.Model):
     # def __str__(self):
     #     # Now it shows: "Mathematics (Class 10)"
     #     return f"{self.name} ({self.standard.name} {self.curriculum_version})"
+    
+    def display_name(self):
+        """Display method for subject"""
+        return f"{self.name} ({self.standard.display_name()})"
     
 
 
@@ -85,8 +98,13 @@ class StudentEnrollment(models.Model):
         # Prevent double enrollment in the same year
         unique_together = [('student', 'academic_year'),('standard', 'academic_year', 'roll_number'), ]   
         ordering = ['-academic_year', 'standard']
+    
     # def __str__(self):
     #     return f"{self.student}-{self.standard}-{self.roll_number}"
+    
+    def display_name(self):
+        """Display method for student enrollment"""
+        return f"{self.student.full_name()} - {self.standard.display_name()} - Roll {self.roll_number}"
 
 #Class teacher assignment
 class ClassTeacher(models.Model):
@@ -97,6 +115,10 @@ class ClassTeacher(models.Model):
     class Meta:
         unique_together = ('teacher', 'standard', 'academic_year')
         ordering = ['-academic_year', 'standard']
+    
+    def display_name(self):
+        """Display method for class teacher"""
+        return f"{self.teacher.full_name()} - {self.standard.display_name()}"
 
 
 #one subject may have two techers, so correctly modeled this too
@@ -107,5 +129,10 @@ class TeacherSubject(models.Model):
 
     class Meta:
         verbose_name = 'Subject Teacher'
+    
     # def __str__(self):
     #     return f"{self.subject} ->> {self.teacher}"
+    
+    def display_name(self):
+        """Display method for teacher subject"""
+        return f"{self.subject.display_name()} - {self.teacher.full_name()}"

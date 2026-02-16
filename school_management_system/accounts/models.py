@@ -38,9 +38,11 @@ class Student(models.Model):
     # def __str__(self):
     #     return f"{self.first_name} {self.last_name}"
     
-    @property
     def full_name(self):
-        return f"{self.first_name} {self.middle_name} {self.last_name}"
+        """Display method for student name"""
+        if self.middle_name:
+            return f"{self.first_name} {self.middle_name} {self.last_name}"
+        return f"{self.first_name} {self.last_name}"
 
 
 class Teacher(models.Model):
@@ -76,6 +78,8 @@ class Teacher(models.Model):
     # def __str__(self):
     #     return f"{self.first_name} {self.last_name}"
     
-    @property
     def full_name(self):
-        return f"{self.first_name} {self.middle_name} {self.last_name}"
+        """Display method for teacher name"""
+        if self.middle_name:
+            return f"{self.first_name} {self.middle_name} {self.last_name}"
+        return f"{self.first_name} {self.last_name}"

@@ -10,10 +10,27 @@ class StudentEnrollmentInline(admin.TabularInline):
 
 @admin.register(Student)
 class StudentAdmin(admin.ModelAdmin):
-    list_display = ( 'first_name', 'last_name', 'admission_number')
-    search_fields = ('first_name', 'last_name', 'admission_number')
+    list_display = ('get_full_name', 'admission_number', 'gender', 'email')
+    search_fields = ('first_name', 'last_name', 'admission_number', 'email')
+    list_filter = ('gender',)
     inlines = [StudentEnrollmentInline]
+    
+    def get_queryset(self, request):
+        return super().get_queryset(request)
+    
+    @admin.display(description='Full Name', ordering='first_name')
+    def get_full_name(self, obj):
+        return obj.full_name()
 
 @admin.register(Teacher)
 class TeacherAdmin(admin.ModelAdmin):
-    list_display = ('first_name', 'last_name', 'designation', 'status')
+    list_display = ('get_full_name', 'designation', 'status', 'email')
+    search_fields = ('first_name', 'last_name', 'email')
+    list_filter = ('status', 'designation')
+    
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('user')
+    
+    @admin.display(description='Full Name', ordering='first_name')
+    def get_full_name(self, obj):
+        return obj.full_name()

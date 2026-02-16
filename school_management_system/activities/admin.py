@@ -8,6 +8,7 @@ from .models import (
     ExamSubject,
     SubjectResult,
     StudentResultSummary,
+    StudentMarksheet,
 )
 
 from academics.models import StudentEnrollment, Standard
@@ -207,7 +208,9 @@ def calculate_exam_ranks(modeladmin, request, queryset):
 
 @admin.register(Exam)
 class ExamAdmin(admin.ModelAdmin):
-    list_display = ('name', 'term', 'academic_year', 'is_published')
+    list_display = ('get_display_name', 'term', 'get_academic_year', 'is_published', 'start_date', 'end_date')
+    list_filter = ('term', 'academic_year', 'is_published')
+    search_fields = ('name',)
     list_select_related = ('academic_year',)
     inlines = [ExamSubjectInline]
     actions = [process_exam_full_results]
@@ -216,21 +219,48 @@ class ExamAdmin(admin.ModelAdmin):
         actions = super().get_actions(request)
         actions.pop('delete_selected', None)
         return actions
+    
+    @admin.display(description='Exam Name', ordering='name')
+    def get_display_name(self, obj):
+        return obj.name
+    
+    @admin.display(description='Academic Year', ordering='academic_year__name')
+    def get_academic_year(self, obj):
+        return obj.academic_year.display_name()
 
 
 @admin.register(ExamSubject)
 class ExamSubjectAdmin(admin.ModelAdmin):
-    list_display = ('exam', 'subject', 'exam_date')
-    list_select_related = ('exam', 'subject', 'standard')
-    list_filter = ['exam', 'subject', 'standard']
+    list_display = ('get_exam', 'get_subject', 'get_standard', 'exam_date', 'full_marks_theory', 'full_marks_practical')
+    list_filter = ('exam', 'standard', 'subject')
+    search_fields = ('exam__name', 'subject__name')
+    list_select_related = ('exam', 'exam__academic_year', 'subject', 'subject__standard', 'standard')
     inlines = [SubjectResultInline]
+    
+    @admin.display(description='Exam', ordering='exam__name')
+    def get_exam(self, obj):
+        return obj.exam.display_name()
+    
+    @admin.display(description='Subject', ordering='subject__name')
+    def get_subject(self, obj):
+        if obj.subject:
+            return obj.subject.display_name()
+        return "-"
+    
+    @admin.display(description='Standard', ordering='standard__name')
+    def get_standard(self, obj):
+        if obj.standard:
+            return obj.standard.display_name()
+        return "-"
 
 
 @admin.register(SubjectResult)
 class SubjectResultAdmin(admin.ModelAdmin):
     list_display = (
-        'student',
+        'get_student_name',
+        'get_roll_number',
         'get_subject_name',
+        'get_exam',
         'total_marks_obtained',
         'subject_grade',
         'subject_grade_point',
@@ -244,18 +274,24 @@ class SubjectResultAdmin(admin.ModelAdmin):
         'is_pass',
     )
 
-    list_filter = ('exam_subject__exam', 'exam_subject__standard',  'exam_subject__subject', )
+    list_filter = ('exam_subject__exam', 'exam_subject__standard',  'exam_subject__subject', 'subject_grade')
     search_fields = (
         'student__student__first_name',
         'student__student__last_name',
+        'student__roll_number',
     )
 
     list_select_related = (
         'student',
         'student__student',
         'student__standard',
+        'student__academic_year',
         'exam_subject',
+        'exam_subject__exam',
+        'exam_subject__exam__academic_year',
         'exam_subject__subject',
+        'exam_subject__subject__standard',
+        'exam_subject__standard',
     )
 
     @admin.display(description='Total Marks Obtained')
@@ -270,31 +306,76 @@ class SubjectResultAdmin(admin.ModelAdmin):
         actions = super().get_actions(request)
         actions.pop('delete_selected', None)
         return actions
-    @admin.display(description="Subject")
+    
+    @admin.display(description='Student', ordering='student__student__first_name')
+    def get_student_name(self, obj):
+        return obj.student.student.full_name()
+    
+    @admin.display(description='Roll No', ordering='student__roll_number')
+    def get_roll_number(self, obj):
+        return obj.student.roll_number
+    
+    @admin.display(description='Subject')
     def get_subject_name(self, obj):
-        # obj is a SubjectResult instance
-        return obj.exam_subject.subject.name  # or obj.student.roll_no depending on your field name
+        if obj.exam_subject and obj.exam_subject.subject:
+            return obj.exam_subject.subject.name
+        return "-"
+    
+    @admin.display(description='Exam', ordering='exam_subject__exam__name')
+    def get_exam(self, obj):
+        return obj.exam_subject.exam.name
 
 
 @admin.register(Attendance)
 class AttendanceAdmin(admin.ModelAdmin):
-    list_display = ('date', 'student', 'status', 'standard')
+    list_display = ('date', 'get_student_name', 'status', 'get_standard', 'get_subject', 'get_recorded_by')
+    list_filter = ('status', 'standard', 'academic_year', 'date')
+    search_fields = ('student__first_name', 'student__last_name')
     date_hierarchy = 'date'
+    
+    list_select_related = (
+        'student',
+        'standard',
+        'subject',
+        'subject__standard',
+        'recorded_by',
+        'academic_year',
+    )
+    
+    @admin.display(description='Student', ordering='student__first_name')
+    def get_student_name(self, obj):
+        return obj.student.full_name()
+    
+    @admin.display(description='Standard', ordering='standard__name')
+    def get_standard(self, obj):
+        return obj.standard.display_name()
+    
+    @admin.display(description='Subject')
+    def get_subject(self, obj):
+        if obj.subject:
+            return obj.subject.name
+        return "General"
+    
+    @admin.display(description='Recorded By')
+    def get_recorded_by(self, obj):
+        if obj.recorded_by:
+            return obj.recorded_by.full_name()
+        return "-"
 
 
 @admin.register(StudentResultSummary)
 class StudentResultSummaryAdmin(admin.ModelAdmin):
     list_display = (
         'id',
-        'student',
-        'exam',
-        'student_standard',
-        'academic_year',
+        'get_student_name',
+        'get_roll_number',
+        'get_exam',
+        'get_student_standard',
+        'get_academic_year',
         'total_marks',
         'gpa',
         'overall_grade',
         'rank',
-        'subject_results_display',
     )
 
     list_filter = (
@@ -315,14 +396,33 @@ class StudentResultSummaryAdmin(admin.ModelAdmin):
         'student__student',
         'student__standard',
         'exam',
+        'exam__academic_year',
         'academic_year',
     )
 
     readonly_fields = (
         'id',
+        'get_student_name',
+        'get_roll_number',
+        'get_exam',
+        'get_academic_year',
+        'total_marks',
+        'percentage',
+        'gpa',
+        'overall_grade',
+        'rank',
+        'subject_results_display',
+    )
+    
+    fields = (
+        'id',
         'student',
+        'get_student_name',
+        'get_roll_number',
         'exam',
+        'get_exam',
         'academic_year',
+        'get_academic_year',
         'total_marks',
         'percentage',
         'gpa',
@@ -340,13 +440,30 @@ class StudentResultSummaryAdmin(admin.ModelAdmin):
                 'student__student',
                 'student__standard',
                 'exam',
+                'exam__academic_year',
                 'academic_year',
             )
         )
 
-    @admin.display(description='Class')
-    def student_standard(self, obj):
-        return obj.student.standard
+    @admin.display(description='Student', ordering='student__student__first_name')
+    def get_student_name(self, obj):
+        return obj.student.student.full_name()
+    
+    @admin.display(description='Roll No', ordering='student__roll_number')
+    def get_roll_number(self, obj):
+        return obj.student.roll_number
+    
+    @admin.display(description='Exam', ordering='exam__name')
+    def get_exam(self, obj):
+        return obj.exam.name
+    
+    @admin.display(description='Class', ordering='student__standard__name')
+    def get_student_standard(self, obj):
+        return obj.student.standard.display_name()
+    
+    @admin.display(description='Academic Year', ordering='academic_year__name')
+    def get_academic_year(self, obj):
+        return obj.academic_year.display_name()
 
     @admin.display(description='Subject Results')
     def subject_results_display(self, obj):
@@ -362,3 +479,212 @@ class StudentResultSummaryAdmin(admin.ModelAdmin):
             f"{r.exam_subject.subject.name}: {r.subject_grade}"
             for r in results
         )
+
+
+# ============================================================
+# STUDENT MARKSHEET VIEW (Individual Marksheet Panel)
+# ============================================================
+
+from django.utils.html import format_html
+
+@admin.register(StudentMarksheet)
+class StudentMarksheetAdmin(admin.ModelAdmin):
+    """
+    Admin panel to view individual student marksheets.
+    This provides a detailed view of each student's performance across different exams.
+    """
+    list_display = (
+        'get_student_name',
+        'roll_number',
+        'get_standard',
+        'get_academic_year',
+        'status',
+    )
+    
+    list_filter = (
+        'academic_year',
+        'standard',
+        'status',
+    )
+    
+    search_fields = (
+        'student__first_name',
+        'student__last_name',
+        'roll_number',
+        'student__admission_number',
+    )
+    
+    list_select_related = (
+        'student',
+        'standard',
+        'academic_year',
+    )
+    
+    fieldsets = (
+        ('Student Information', {
+            'fields': (
+                'get_student_name',
+                'get_admission_number',
+                'get_gender',
+                'get_email',
+            )
+        }),
+        ('Enrollment Details', {
+            'fields': (
+                'get_standard',
+                'roll_number',
+                'get_academic_year',
+                'status',
+            )
+        }),
+        ('Performance Summary', {
+            'fields': (
+                'get_exam_summaries',
+            ),
+            'classes': ('wide',),
+        }),
+        ('Subject-wise Results', {
+            'fields': (
+                'get_all_subject_results',
+            ),
+            'classes': ('wide',),
+        }),
+    )
+    
+    readonly_fields = (
+        'get_student_name',
+        'get_admission_number',
+        'get_gender',
+        'get_email',
+        'get_standard',
+        'get_academic_year',
+        'get_exam_summaries',
+        'get_all_subject_results',
+        'roll_number',
+        'status',
+    )
+    
+    def has_add_permission(self, request):
+        return False
+    
+    def has_delete_permission(self, request, obj=None):
+        return False
+    
+    @admin.display(description='Student Name')
+    def get_student_name(self, obj):
+        return obj.student.full_name()
+    
+    @admin.display(description='Admission Number')
+    def get_admission_number(self, obj):
+        return obj.student.admission_number
+    
+    @admin.display(description='Gender')
+    def get_gender(self, obj):
+        return obj.student.get_gender_display()
+    
+    @admin.display(description='Email')
+    def get_email(self, obj):
+        return obj.student.email or "N/A"
+    
+    @admin.display(description='Standard')
+    def get_standard(self, obj):
+        return obj.standard.display_name()
+    
+    @admin.display(description='Academic Year')
+    def get_academic_year(self, obj):
+        return obj.academic_year.display_name()
+    
+    @admin.display(description='Exam Performance Summary')
+    def get_exam_summaries(self, obj):
+        """Display summary of all exams for this student"""
+        summaries = StudentResultSummary.objects.filter(
+            student=obj
+        ).select_related('exam').order_by('-exam__start_date')
+        
+        if not summaries:
+            return format_html("<p>No exam results available</p>")
+        
+        html = "<table style='width:100%; border-collapse: collapse;'>"
+        html += "<tr style='background-color: #f2f2f2;'>"
+        html += "<th style='border: 1px solid #ddd; padding: 8px; text-align: left;'>Exam</th>"
+        html += "<th style='border: 1px solid #ddd; padding: 8px; text-align: left;'>Total Marks</th>"
+        html += "<th style='border: 1px solid #ddd; padding: 8px; text-align: left;'>GPA</th>"
+        html += "<th style='border: 1px solid #ddd; padding: 8px; text-align: left;'>Grade</th>"
+        html += "<th style='border: 1px solid #ddd; padding: 8px; text-align: left;'>Rank</th>"
+        html += "</tr>"
+        
+        for summary in summaries:
+            html += "<tr>"
+            html += f"<td style='border: 1px solid #ddd; padding: 8px;'>{summary.exam.name}</td>"
+            html += f"<td style='border: 1px solid #ddd; padding: 8px;'>{summary.total_marks}</td>"
+            html += f"<td style='border: 1px solid #ddd; padding: 8px;'>{summary.gpa}</td>"
+            html += f"<td style='border: 1px solid #ddd; padding: 8px;'>{summary.overall_grade}</td>"
+            html += f"<td style='border: 1px solid #ddd; padding: 8px;'>{summary.rank or 'N/A'}</td>"
+            html += "</tr>"
+        
+        html += "</table>"
+        return format_html(html)
+    
+    @admin.display(description='Detailed Subject-wise Results')
+    def get_all_subject_results(self, obj):
+        """Display detailed subject-wise results for all exams"""
+        # Get all exams for this academic year
+        exams = Exam.objects.filter(
+            academic_year=obj.academic_year
+        ).order_by('-start_date')
+        
+        if not exams:
+            return format_html("<p>No exams found for this academic year</p>")
+        
+        html = ""
+        for exam in exams:
+            # Get subject results for this student and exam
+            results = SubjectResult.objects.filter(
+                student=obj,
+                exam_subject__exam=exam
+            ).select_related(
+                'exam_subject',
+                'exam_subject__subject',
+                'exam_subject__exam'
+            ).order_by('exam_subject__subject__name')
+            
+            if not results.exists():
+                continue
+            
+            html += f"<h3 style='margin-top: 20px;'>{exam.name}</h3>"
+            html += "<table style='width:100%; border-collapse: collapse;'>"
+            html += "<tr style='background-color: #f2f2f2;'>"
+            html += "<th style='border: 1px solid #ddd; padding: 8px; text-align: left;'>Subject</th>"
+            html += "<th style='border: 1px solid #ddd; padding: 8px; text-align: center;'>Theory (Obtained/Full)</th>"
+            html += "<th style='border: 1px solid #ddd; padding: 8px; text-align: center;'>Practical (Obtained/Full)</th>"
+            html += "<th style='border: 1px solid #ddd; padding: 8px; text-align: center;'>Total</th>"
+            html += "<th style='border: 1px solid #ddd; padding: 8px; text-align: center;'>Grade</th>"
+            html += "<th style='border: 1px solid #ddd; padding: 8px; text-align: center;'>GPA</th>"
+            html += "</tr>"
+            
+            for result in results:
+                subject_name = result.exam_subject.subject.name if result.exam_subject.subject else "N/A"
+                theory_marks = f"{result.marks_obtained_theory}/{result.exam_subject.full_marks_theory}"
+                practical_marks = f"{result.marks_obtained_practical}/{result.exam_subject.full_marks_practical}"
+                total_obtained = result.marks_obtained_theory + result.marks_obtained_practical
+                total_full = result.exam_subject.full_marks_theory + result.exam_subject.full_marks_practical
+                total_marks = f"{total_obtained}/{total_full}"
+                
+                # Color code based on grade
+                grade_color = "#4CAF50" if result.subject_grade != "NG" else "#f44336"
+                
+                html += "<tr>"
+                html += f"<td style='border: 1px solid #ddd; padding: 8px;'>{subject_name}</td>"
+                html += f"<td style='border: 1px solid #ddd; padding: 8px; text-align: center;'>{theory_marks}</td>"
+                html += f"<td style='border: 1px solid #ddd; padding: 8px; text-align: center;'>{practical_marks}</td>"
+                html += f"<td style='border: 1px solid #ddd; padding: 8px; text-align: center;'><strong>{total_marks}</strong></td>"
+                html += f"<td style='border: 1px solid #ddd; padding: 8px; text-align: center; color: {grade_color}; font-weight: bold;'>{result.subject_grade}</td>"
+                html += f"<td style='border: 1px solid #ddd; padding: 8px; text-align: center;'>{result.subject_grade_point}</td>"
+                html += "</tr>"
+            
+            html += "</table>"
+        
+        if not html:
+            return format_html("<p>No subject results available</p>")
+        
+        return format_html(html)

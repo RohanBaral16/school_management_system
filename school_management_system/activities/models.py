@@ -28,8 +28,12 @@ class Attendance(models.Model):
         unique_together = ('date', 'student', 'subject', 'standard')
         verbose_name_plural = "Attendance"
 
-    def __str__(self):
-        return f"{self.student} - {self.date} ({self.status})"
+    # def __str__(self):
+    #     return f"{self.student} - {self.date} ({self.status})"
+    
+    def display_name(self):
+        """Display method for attendance"""
+        return f"{self.student.full_name()} - {self.date} ({self.status})"
 
 # --- EXAMS ---
 class Exam(models.Model):
@@ -51,8 +55,12 @@ class Exam(models.Model):
 
     # def __str__(self):
     #     return f"{self.name} ({self.academic_year})"
-    def __str__(self):
-        return self.name
+    # def __str__(self):
+    #     return self.name
+    
+    def display_name(self):
+        """Display method for exam"""
+        return f"{self.name} ({self.academic_year.display_name()})"
 
 
 class ExamSubject(models.Model):
@@ -83,8 +91,14 @@ class ExamSubject(models.Model):
 
     # def __str__(self):
     #     return f"{self.exam.name} - {self.exam.academic_year} - {self.subject.standard} - {self.subject.name}"
-    def __str__(self):
-        return f"ExamSubject #{self.pk}"
+    # def __str__(self):
+    #     return f"ExamSubject #{self.pk}"
+    
+    def display_name(self):
+        """Display method for exam subject"""
+        if self.subject:
+            return f"{self.exam.display_name()} - {self.subject.display_name()}"
+        return f"{self.exam.display_name()} - ExamSubject #{self.pk}"
     
 
 # --- RESULTS ---
@@ -165,8 +179,12 @@ class SubjectResult(models.Model):
 
     # def __str__(self):
     #     return f"{self.student} - {self.exam_subject.subject.name}: {self.subject_grade}"
-    def __str__(self):
-        return f"SubjectResult #{self.pk}"
+    # def __str__(self):
+    #     return f"SubjectResult #{self.pk}"
+    
+    def display_name(self):
+        """Display method for subject result"""
+        return f"{self.student.display_name()} - {self.exam_subject.display_name()}: {self.subject_grade}"
     
 
 
@@ -185,8 +203,12 @@ class StudentResultSummary(models.Model):
         unique_together = ('student', 'exam')
         verbose_name_plural = "Result Summaries"
 
-    def __str__(self):
-        return f"{self.student} - {self.exam.name}"
+    # def __str__(self):
+    #     return f"{self.student} - {self.exam.name}"
+    
+    def display_name(self):
+        """Display method for student result summary"""
+        return f"{self.student.display_name()} - {self.exam.display_name()}"
     
     def get_subject_results(self):
         """
@@ -197,3 +219,19 @@ class StudentResultSummary(models.Model):
             student=self.student,
             exam_subject__exam=self.exam
         )
+
+
+# ============================================================
+# PROXY MODEL FOR STUDENT MARKSHEET VIEW
+# ============================================================
+
+class StudentMarksheet(StudentEnrollment):
+    """
+    Proxy model for viewing individual student marksheets in admin.
+    This allows us to have a separate admin interface focused on marksheet viewing
+    without duplicating the StudentEnrollment model.
+    """
+    class Meta:
+        proxy = True
+        verbose_name = "Student Marksheet"
+        verbose_name_plural = "Student Marksheets"
