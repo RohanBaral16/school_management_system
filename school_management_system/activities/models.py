@@ -4,6 +4,10 @@ from nepali_datetime_field.models import NepaliDateField
 import nepali_datetime
 
 
+# Import StudentEnrollment for proxy model
+from academics.models import StudentEnrollment
+
+
 # --- ATTENDANCE ---
 class Attendance(models.Model):
     ATTENDANCE_CHOICES = [
