@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.forms.models import BaseInlineFormSet
 from django.db.models import Sum, Avg
+from django.utils.safestring import mark_safe
 
 from .models import (
     Attendance,
@@ -593,7 +594,7 @@ class StudentMarksheetAdmin(admin.ModelAdmin):
         ).select_related('exam').order_by('-exam__start_date')
         
         if not summaries:
-            return format_html("<p>No exam results available</p>")
+            return mark_safe("<p>No exam results available</p>")
         
         html = "<table style='width:100%; border-collapse: collapse;'>"
         html += "<tr style='background-color: #f2f2f2;'>"
@@ -614,7 +615,7 @@ class StudentMarksheetAdmin(admin.ModelAdmin):
             html += "</tr>"
         
         html += "</table>"
-        return format_html(html)
+        return mark_safe(html)
     
     @admin.display(description='Detailed Subject-wise Results')
     def get_all_subject_results(self, obj):
@@ -625,7 +626,7 @@ class StudentMarksheetAdmin(admin.ModelAdmin):
         ).select_related('academic_year').order_by('-start_date')
         
         if not exams:
-            return format_html("<p>No exams found for this academic year</p>")
+            return mark_safe("<p>No exams found for this academic year</p>")
         
         html = ""
         for exam in exams:
@@ -676,6 +677,6 @@ class StudentMarksheetAdmin(admin.ModelAdmin):
             html += "</table>"
         
         if not html:
-            return format_html("<p>No subject results available</p>")
+            return mark_safe("<p>No subject results available</p>")
         
-        return format_html(html)
+        return mark_safe(html)
