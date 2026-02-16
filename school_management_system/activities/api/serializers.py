@@ -201,6 +201,7 @@ class StudentMarksheetSerializer(serializers.ModelSerializer):
 
     exam_id = serializers.IntegerField(source='resultsummary.exam.id', read_only=True)
     exam_name = serializers.CharField(source='resultsummary.exam.name', read_only=True)
+    
 
     subject_id = serializers.IntegerField(source='result.exam_subject.subject.id', read_only=True)
     subject_name = serializers.CharField(source='result.exam_subject.subject.name', read_only=True)
@@ -247,7 +248,10 @@ class StudentMarksheetSerializer(serializers.ModelSerializer):
         decimal_places=2,
         read_only=True,
     )
-
+    resultsummary_id = serializers.IntegerField(
+        source='resultsummary.id',
+        read_only = True
+    )
     summary_gpa = serializers.DecimalField(
         source='resultsummary.gpa',
         max_digits=3,
@@ -282,6 +286,7 @@ class StudentMarksheetSerializer(serializers.ModelSerializer):
             'marks_obtained_theory',
             'marks_obtained_practical',
             'subject_grade',
+            'resultsummary_id',
             'subject_grade_point',
             'summary_gpa',
             'summary_overall_grade',
