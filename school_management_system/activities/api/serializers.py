@@ -6,7 +6,7 @@ from academics.api.serializers import (
     AcademicYearSerializer,
 )
 from accounts.api.serializers import StudentSerializer, TeacherSerializer
-from ..models import SubjectResult, ExamSubject, StudentResultSummary, Attendance, Exam, StudentMarksheet
+from ..models import SubjectResult, ExamSubject, StudentResultSummary, Attendance, Exam
 from academics.models import ClassTeacher
 
 
@@ -169,7 +169,22 @@ class StudentResultSummarySerializer(serializers.ModelSerializer):
         queryset=StudentResultSummary.objects.none(),
         write_only=True,
     )
-    results = SubjectResultSerializer(many=True, read_only=True)
+    results = serializers.SerializerMethodField()
+    
+    def get_results(self, obj):
+        """Fetch subject results dynamically instead of using M2M."""
+        results = SubjectResult.objects.filter(
+            student=obj.student,
+            exam_subject__exam=obj.exam
+        ).select_related(
+            'exam_subject__exam__academic_year',
+            'exam_subject__subject__standard',
+            'exam_subject__standard',
+            'student__student',
+            'student__standard',
+            'student__academic_year',
+        )
+        return SubjectResultSerializer(results, many=True, context=self.context).data
 
     class Meta:
         model = StudentResultSummary
@@ -191,120 +206,115 @@ class StudentResultSummarySerializer(serializers.ModelSerializer):
         read_only_fields = ['results', 'total_marks', 'percentage', 'gpa', 'overall_grade', 'rank']
 
 
-class StudentMarksheetSerializer(serializers.ModelSerializer):
-    student_id = serializers.IntegerField(source='resultsummary.student.student.id', read_only=True)
-    student_enrollment_id = serializers.IntegerField(source='resultsummary.student.id', read_only=True)
-    student_full_name = serializers.CharField(source='resultsummary.student.student.full_name', read_only=True)
-    standard_id = serializers.IntegerField(source='resultsummary.student.standard.id', read_only=True)
+class MarksheetDetailSerializer(serializers.Serializer):
+    """
+    Serializer for marksheet details - replaces StudentMarksheetSerializer.
+    Fetches data from SubjectResult and StudentResultSummary without a through table.
+    """
+    id = serializers.IntegerField(source='pk', read_only=True)
+    student_id = serializers.IntegerField(source='student.student.id', read_only=True)
+    student_enrollment_id = serializers.IntegerField(source='student.id', read_only=True)
+    student_full_name = serializers.CharField(source='student.student.full_name', read_only=True)
+    standard_id = serializers.IntegerField(source='student.standard.id', read_only=True)
     standard = serializers.SerializerMethodField(read_only=True)
-    roll_no = serializers.CharField(source='resultsummary.student.roll_number', read_only=True)
+    roll_no = serializers.CharField(source='student.roll_number', read_only=True)
 
-    exam_id = serializers.IntegerField(source='resultsummary.exam.id', read_only=True)
-    exam_name = serializers.CharField(source='resultsummary.exam.name', read_only=True)
+    exam_id = serializers.IntegerField(source='exam_subject.exam.id', read_only=True)
+    exam_name = serializers.CharField(source='exam_subject.exam.name', read_only=True)
     
-
-    subject_id = serializers.IntegerField(source='result.exam_subject.subject.id', read_only=True)
-    subject_name = serializers.CharField(source='result.exam_subject.subject.name', read_only=True)
+    subject_id = serializers.IntegerField(source='exam_subject.subject.id', read_only=True)
+    subject_name = serializers.CharField(source='exam_subject.subject.name', read_only=True)
     full_marks_theory = serializers.DecimalField(
-        source='result.exam_subject.full_marks_theory',
+        source='exam_subject.full_marks_theory',
         max_digits=5,
         decimal_places=2,
         read_only=True,
     )
     pass_marks_theory = serializers.DecimalField(
-        source='result.exam_subject.pass_marks_theory',
+        source='exam_subject.pass_marks_theory',
         max_digits=5,
         decimal_places=2,
         read_only=True,
     )
     full_marks_practical = serializers.DecimalField(
-        source='result.exam_subject.full_marks_practical',
+        source='exam_subject.full_marks_practical',
         max_digits=5,
         decimal_places=2,
         read_only=True,
     )
     pass_marks_practical = serializers.DecimalField(
-        source='result.exam_subject.pass_marks_practical',
+        source='exam_subject.pass_marks_practical',
         max_digits=5,
         decimal_places=2,
         read_only=True,
     )
     marks_obtained_theory = serializers.DecimalField(
-        source='result.marks_obtained_theory',
         max_digits=5,
         decimal_places=2,
         read_only=True,
     )
     marks_obtained_practical = serializers.DecimalField(
-        source='result.marks_obtained_practical',
         max_digits=5,
         decimal_places=2,
         read_only=True,
     )
-    subject_grade = serializers.CharField(source='result.subject_grade', read_only=True)
+    subject_grade = serializers.CharField(read_only=True)
     subject_grade_point = serializers.DecimalField(
-        source='result.subject_grade_point',
         max_digits=3,
         decimal_places=2,
         read_only=True,
     )
-    resultsummary_id = serializers.IntegerField(
-        source='resultsummary.id',
-        read_only = True
-    )
-    summary_gpa = serializers.DecimalField(
-        source='resultsummary.gpa',
-        max_digits=3,
-        decimal_places=2,
-        read_only=True,
-        allow_null=True,
-    )
-    summary_overall_grade = serializers.CharField(source='resultsummary.overall_grade', read_only=True)
-    summary_rank = serializers.IntegerField(source='resultsummary.rank', read_only=True, allow_null=True)
+    
+    # Summary fields - fetched via annotation or passed in context
+    resultsummary_id = serializers.SerializerMethodField()
+    summary_gpa = serializers.SerializerMethodField()
+    summary_overall_grade = serializers.SerializerMethodField()
+    summary_rank = serializers.SerializerMethodField()
 
     class_teacher_id = serializers.SerializerMethodField(read_only=True)
     class_teacher_name = serializers.SerializerMethodField(read_only=True)
 
-    class Meta:
-        model = StudentMarksheet
-        fields = [
-            'id',
-            'student_id',
-            'student_enrollment_id',
-            'student_full_name',
-            'standard_id',
-            'standard',
-            'roll_no',
-            'exam_id',
-            'exam_name',
-            'subject_id',
-            'subject_name',
-            'full_marks_theory',
-            'pass_marks_theory',
-            'full_marks_practical',
-            'pass_marks_practical',
-            'marks_obtained_theory',
-            'marks_obtained_practical',
-            'subject_grade',
-            'resultsummary_id',
-            'subject_grade_point',
-            'summary_gpa',
-            'summary_overall_grade',
-            'summary_rank',
-            'class_teacher_id',
-            'class_teacher_name',
-        ]
-
     def get_standard(self, obj):
-        standard = obj.resultsummary.student.standard
+        standard = obj.student.standard
         if not standard:
             return None
         return f"{standard.name} {standard.section}".strip()
 
+    def _get_summary(self, obj):
+        """Get or cache the result summary for this subject result."""
+        cache = self.context.setdefault('_summary_cache', {})
+        key = (obj.student_id, obj.exam_subject.exam_id)
+        
+        if key not in cache:
+            # If we're serializing multiple objects, we might want to bulk fetch summaries
+            # For now, we fetch individually but cache the result
+            cache[key] = StudentResultSummary.objects.filter(
+                student_id=obj.student_id,
+                exam_id=obj.exam_subject.exam_id
+            ).first()
+        
+        return cache[key]
+
+    def get_resultsummary_id(self, obj):
+        summary = self._get_summary(obj)
+        return summary.id if summary else None
+
+    def get_summary_gpa(self, obj):
+        summary = self._get_summary(obj)
+        return summary.gpa if summary else None
+
+    def get_summary_overall_grade(self, obj):
+        summary = self._get_summary(obj)
+        return summary.overall_grade if summary else None
+
+    def get_summary_rank(self, obj):
+        summary = self._get_summary(obj)
+        return summary.rank if summary else None
+
     def _get_class_teacher(self, obj):
         cache = self.context.setdefault('_class_teacher_cache', {})
-        standard_id = obj.resultsummary.student.standard_id
-        academic_year_id = obj.resultsummary.student.academic_year_id
+        standard_id = obj.student.standard_id
+        academic_year_id = obj.student.academic_year_id
         key = (standard_id, academic_year_id)
 
         if key not in cache:

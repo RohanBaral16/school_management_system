@@ -102,58 +102,6 @@ class SubjectResultInline(admin.TabularInline):
 
 
 # ============================================================
-# STUDENT RESULT SUMMARY INLINE (through table)
-# ============================================================
-
-class StudentMarksheetInline(admin.TabularInline):
-    model = StudentResultSummary.results.through
-    extra = 0
-    can_delete = False
-    verbose_name = 'Subject Result'
-    verbose_name_plural = 'Subject Results'
-
-    fields = (
-        'id',
-        'subject_name',
-        'marks_obtained_theory',
-        'marks_obtained_practical',
-        'subject_grade',
-        'subject_grade_point',
-    )
-
-    readonly_fields = fields
-
-    def get_queryset(self, request):
-        return (
-            super()
-            .get_queryset(request)
-            .select_related(
-                'result__exam_subject__subject'
-            )
-        )
-
-    @admin.display(description='Subject')
-    def subject_name(self, obj):
-        return obj.result.exam_subject.subject.name
-
-    @admin.display(description='Theory')
-    def marks_obtained_theory(self, obj):
-        return obj.result.marks_obtained_theory
-
-    @admin.display(description='Practical')
-    def marks_obtained_practical(self, obj):
-        return obj.result.marks_obtained_practical
-
-    @admin.display(description='Grade')
-    def subject_grade(self, obj):
-        return obj.result.subject_grade
-
-    @admin.display(description='GP')
-    def subject_grade_point(self, obj):
-        return obj.result.subject_grade_point
-
-
-# ============================================================
 # ADMIN ACTIONS
 # ============================================================
 
@@ -197,7 +145,8 @@ def process_exam_full_results(modeladmin, request, queryset):
                 avg_gpa = aggregates['avg_gpa'] or 0
                 has_ng = results.filter(subject_grade='NG').exists()
 
-                summary, _ = StudentResultSummary.objects.update_or_create(
+                # Update or create summary - no longer need to set M2M relationship
+                StudentResultSummary.objects.update_or_create(
                     student=enrollment,
                     exam=exam,
                     defaults={
@@ -207,8 +156,6 @@ def process_exam_full_results(modeladmin, request, queryset):
                         'overall_grade': 'NG' if has_ng else 'PASS',
                     },
                 )
-
-                summary.results.set(results)
                 total_processed += 1
 
             summaries = (
@@ -371,8 +318,6 @@ class StudentResultSummaryAdmin(admin.ModelAdmin):
         'academic_year',
     )
 
-    inlines = [StudentMarksheetInline]
-
     readonly_fields = (
         'id',
         'student',
@@ -397,9 +342,6 @@ class StudentResultSummaryAdmin(admin.ModelAdmin):
                 'exam',
                 'academic_year',
             )
-            .prefetch_related(
-                'results__exam_subject__subject'
-            )
         )
 
     @admin.display(description='Class')
@@ -408,7 +350,12 @@ class StudentResultSummaryAdmin(admin.ModelAdmin):
 
     @admin.display(description='Subject Results')
     def subject_results_display(self, obj):
-        results = obj.results.all()
+        # Fetch results dynamically instead of using M2M
+        results = SubjectResult.objects.filter(
+            student=obj.student,
+            exam_subject__exam=obj.exam
+        ).select_related('exam_subject__subject')
+        
         if not results:
             return "-"
         return ", ".join(
