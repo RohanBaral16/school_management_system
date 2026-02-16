@@ -40,7 +40,7 @@ class Student(models.Model):
     
     def full_name(self):
         """Display method for student name"""
-        if self.middle_name:
+        if self.middle_name and self.middle_name.strip():
             return f"{self.first_name} {self.middle_name} {self.last_name}"
         return f"{self.first_name} {self.last_name}"
 
@@ -80,6 +80,6 @@ class Teacher(models.Model):
     
     def full_name(self):
         """Display method for teacher name"""
-        if self.middle_name:
+        if self.middle_name and self.middle_name.strip():
             return f"{self.first_name} {self.middle_name} {self.last_name}"
         return f"{self.first_name} {self.last_name}"

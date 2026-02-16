@@ -208,7 +208,7 @@ def calculate_exam_ranks(modeladmin, request, queryset):
 
 @admin.register(Exam)
 class ExamAdmin(admin.ModelAdmin):
-    list_display = ('get_display_name', 'term', 'get_academic_year', 'is_published', 'start_date', 'end_date')
+    list_display = ('name', 'term', 'get_academic_year', 'is_published', 'start_date', 'end_date')
     list_filter = ('term', 'academic_year', 'is_published')
     search_fields = ('name',)
     list_select_related = ('academic_year',)
@@ -219,10 +219,6 @@ class ExamAdmin(admin.ModelAdmin):
         actions = super().get_actions(request)
         actions.pop('delete_selected', None)
         return actions
-    
-    @admin.display(description='Exam Name', ordering='name')
-    def get_display_name(self, obj):
-        return obj.name
     
     @admin.display(description='Academic Year', ordering='academic_year__name')
     def get_academic_year(self, obj):
@@ -257,8 +253,7 @@ class ExamSubjectAdmin(admin.ModelAdmin):
 @admin.register(SubjectResult)
 class SubjectResultAdmin(admin.ModelAdmin):
     list_display = (
-        'get_student_name',
-        'get_roll_number',
+        'get_student_info',
         'get_subject_name',
         'get_exam',
         'total_marks_obtained',
@@ -307,13 +302,9 @@ class SubjectResultAdmin(admin.ModelAdmin):
         actions.pop('delete_selected', None)
         return actions
     
-    @admin.display(description='Student', ordering='student__student__first_name')
-    def get_student_name(self, obj):
-        return obj.student.student.full_name()
-    
-    @admin.display(description='Roll No', ordering='student__roll_number')
-    def get_roll_number(self, obj):
-        return obj.student.roll_number
+    @admin.display(description='Student (Roll No)', ordering='student__student__first_name')
+    def get_student_info(self, obj):
+        return f"{obj.student.student.full_name()} ({obj.student.roll_number})"
     
     @admin.display(description='Subject')
     def get_subject_name(self, obj):
@@ -631,7 +622,7 @@ class StudentMarksheetAdmin(admin.ModelAdmin):
         # Get all exams for this academic year
         exams = Exam.objects.filter(
             academic_year=obj.academic_year
-        ).order_by('-start_date')
+        ).select_related('academic_year').order_by('-start_date')
         
         if not exams:
             return format_html("<p>No exams found for this academic year</p>")

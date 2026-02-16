@@ -15,9 +15,6 @@ class StudentAdmin(admin.ModelAdmin):
     list_filter = ('gender',)
     inlines = [StudentEnrollmentInline]
     
-    def get_queryset(self, request):
-        return super().get_queryset(request)
-    
     @admin.display(description='Full Name', ordering='first_name')
     def get_full_name(self, obj):
         return obj.full_name()
