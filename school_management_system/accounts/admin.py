@@ -7,6 +7,11 @@ from academics.models import StudentEnrollment # Import this to use as an Inline
 class StudentEnrollmentInline(admin.TabularInline):
     model = StudentEnrollment
     extra = 0
+    
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        # Optimize inline queryset with select_related
+        return qs.select_related('standard', 'academic_year')
 
 @admin.register(Student)
 class StudentAdmin(admin.ModelAdmin):

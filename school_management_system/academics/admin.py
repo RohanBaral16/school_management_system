@@ -57,8 +57,7 @@ class StudentEnrollmentAdmin(admin.ModelAdmin):
     @admin.display(description='Academic Year', ordering='academic_year__name')
     def get_academic_year(self, obj):
         return obj.academic_year.display_name()
-    
-    
+
 @admin.register(ClassTeacher)
 class ClassTeacherAdmin(admin.ModelAdmin):
     list_display = ('get_academic_year', 'get_standard', 'get_teacher')
@@ -66,7 +65,6 @@ class ClassTeacherAdmin(admin.ModelAdmin):
     search_fields = ('teacher__first_name', 'teacher__last_name', 'standard__name')
     
     list_select_related = ('academic_year', 'standard', 'teacher')
-    
     @admin.display(description='Academic Year', ordering='academic_year__name')
     def get_academic_year(self, obj):
         return obj.academic_year.display_name()
@@ -78,8 +76,7 @@ class ClassTeacherAdmin(admin.ModelAdmin):
     @admin.display(description='Teacher', ordering='teacher__first_name')
     def get_teacher(self, obj):
         return obj.teacher.full_name()
-    
-    
+
 @admin.register(TeacherSubject)
 class TeacherSubjectAdmin(admin.ModelAdmin):
     list_display = ('get_subject', 'get_teacher', 'get_academic_year')
