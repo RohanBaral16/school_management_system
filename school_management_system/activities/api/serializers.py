@@ -7,7 +7,7 @@ from academics.api.serializers import (
 )
 from accounts.api.serializers import StudentSerializer, TeacherSerializer
 from ..models import SubjectResult, ExamSubject, StudentResultSummary, Attendance, Exam
-from academics.models import ClassTeacher
+from academics.models import ClassTeacher, Subject
 
 
 class ExamSerializer(serializers.ModelSerializer):
@@ -30,6 +30,25 @@ class ExamSerializer(serializers.ModelSerializer):
             'end_date',
             'is_published',
             'created_at',
+        ]
+
+
+class ExamWriteSerializer(serializers.ModelSerializer):
+    academic_year_id = serializers.PrimaryKeyRelatedField(
+        source='academic_year',
+        queryset=AcademicYearSerializer.Meta.model.objects.all(),
+    )
+
+    class Meta:
+        model = Exam
+        fields = [
+            'id',
+            'name',
+            'term',
+            'academic_year_id',
+            'start_date',
+            'end_date',
+            'is_published',
         ]
 
 
@@ -86,6 +105,47 @@ class AttendanceSerializer(serializers.ModelSerializer):
         ]
 
 
+class AttendanceWriteSerializer(serializers.ModelSerializer):
+    student_id = serializers.PrimaryKeyRelatedField(
+        source='student',
+        queryset=StudentSerializer.Meta.model.objects.all(),
+    )
+    standard_id = serializers.PrimaryKeyRelatedField(
+        source='standard',
+        queryset=StandardSerializer.Meta.model.objects.all(),
+    )
+    subject_id = serializers.PrimaryKeyRelatedField(
+        source='subject',
+        queryset=Subject.objects.all(),
+        required=False,
+        allow_null=True,
+    )
+    recorded_by_id = serializers.PrimaryKeyRelatedField(
+        source='recorded_by',
+        queryset=TeacherSerializer.Meta.model.objects.all(),
+        required=False,
+        allow_null=True,
+    )
+    academic_year_id = serializers.PrimaryKeyRelatedField(
+        source='academic_year',
+        queryset=AcademicYearSerializer.Meta.model.objects.all(),
+    )
+
+    class Meta:
+        model = Attendance
+        fields = [
+            'id',
+            'date',
+            'student_id',
+            'standard_id',
+            'subject_id',
+            'status',
+            'recorded_by_id',
+            'academic_year_id',
+            'remarks',
+        ]
+
+
 class ExamSubjectSerializer(serializers.ModelSerializer):
     exam = ExamSerializer(read_only=True)
     exam_id = serializers.PrimaryKeyRelatedField(
@@ -111,6 +171,39 @@ class ExamSubjectSerializer(serializers.ModelSerializer):
             'subject',
             'subject_id',
             'standard',
+            'standard_id',
+            'exam_date',
+            'full_marks_theory',
+            'pass_marks_theory',
+            'full_marks_practical',
+            'pass_marks_practical',
+        ]
+
+
+class ExamSubjectWriteSerializer(serializers.ModelSerializer):
+    exam_id = serializers.PrimaryKeyRelatedField(
+        source='exam',
+        queryset=Exam.objects.all(),
+    )
+    subject_id = serializers.PrimaryKeyRelatedField(
+        source='subject',
+        queryset=Subject.objects.all(),
+        required=False,
+        allow_null=True,
+    )
+    standard_id = serializers.PrimaryKeyRelatedField(
+        source='standard',
+        queryset=StandardSerializer.Meta.model.objects.all(),
+        required=False,
+        allow_null=True,
+    )
+
+    class Meta:
+        model = ExamSubject
+        fields = [
+            'id',
+            'exam_id',
+            'subject_id',
             'standard_id',
             'exam_date',
             'full_marks_theory',
@@ -148,6 +241,27 @@ class SubjectResultSerializer(serializers.ModelSerializer):
             'subject_grade_point',
         ]
         read_only_fields = ['subject_grade', 'subject_grade_point']
+
+
+class SubjectResultWriteSerializer(serializers.ModelSerializer):
+    student_id = serializers.PrimaryKeyRelatedField(
+        source='student',
+        queryset=StudentEnrollmentSerializer.Meta.model.objects.all(),
+    )
+    exam_subject_id = serializers.PrimaryKeyRelatedField(
+        source='exam_subject',
+        queryset=ExamSubject.objects.all(),
+    )
+
+    class Meta:
+        model = SubjectResult
+        fields = [
+            'id',
+            'student_id',
+            'exam_subject_id',
+            'marks_obtained_theory',
+            'marks_obtained_practical',
+        ]
 
 
 class StudentResultSummarySerializer(serializers.ModelSerializer):
@@ -204,6 +318,25 @@ class StudentResultSummarySerializer(serializers.ModelSerializer):
             'results',
         ]
         read_only_fields = ['results', 'total_marks', 'percentage', 'gpa', 'overall_grade', 'rank']
+
+
+class StudentResultSummaryWriteSerializer(serializers.ModelSerializer):
+    student_id = serializers.PrimaryKeyRelatedField(
+        source='student',
+        queryset=StudentEnrollmentSerializer.Meta.model.objects.all(),
+    )
+    exam_id = serializers.PrimaryKeyRelatedField(
+        source='exam',
+        queryset=Exam.objects.all(),
+    )
+
+    class Meta:
+        model = StudentResultSummary
+        fields = [
+            'id',
+            'student_id',
+            'exam_id',
+        ]
 
 
 class MarksheetDetailSerializer(serializers.Serializer):
