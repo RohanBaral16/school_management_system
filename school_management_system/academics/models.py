@@ -20,12 +20,13 @@ class AcademicYear(models.Model):
         ordering = ['-name']
         verbose_name = "Academic Year"
 
-    def __str__(self):
-        return self.name
+    # def __str__(self):
+    #     return self.name
     
-    @property
     def display_name(self):
-        return self.name
+        """Display method for academic year"""
+        status_icon = "✓" if self.is_current else ""
+        return f"{self.name} {status_icon}".strip()
     
 # --- standard ---
 class Standard(models.Model):
@@ -46,10 +47,10 @@ class Standard(models.Model):
         verbose_name = 'Class / Standard'
 
     def __str__(self):
-        return f"{self.name} - {self.section}" if self.section else self.name
-    
-    @property
+        return self.display_name()
+
     def display_name(self):
+        """Display method for standard"""
         return f"{self.name} - {self.section}" if self.section else self.name
 
 # --- SUBJECT ---
@@ -64,11 +65,11 @@ class Subject(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.name} ({self.standard.display_name})"
-    
-    @property
+        return self.display_name()
+
     def display_name(self):
-        return f"{self.name} ({self.standard.display_name})"
+        """Display method for subject"""
+        return f"{self.name} ({self.standard.display_name()})"
     
 
 
@@ -98,11 +99,11 @@ class StudentEnrollment(models.Model):
         ordering = ['-academic_year', 'standard']
     
     def __str__(self):
-        return f"{self.student.full_name} - {self.standard.display_name} ({self.roll_number})"
-    
-    @property
+        return self.display_name()
+
     def display_name(self):
-        return f"{self.student.full_name} - {self.standard.display_name} ({self.roll_number})"
+        """Display method for student enrollment"""
+        return f"{self.student.full_name()} - {self.standard.display_name()} - Roll {self.roll_number}"
 
 #Class teacher assignment
 class ClassTeacher(models.Model):
@@ -115,7 +116,11 @@ class ClassTeacher(models.Model):
         ordering = ['-academic_year', 'standard']
     
     def __str__(self):
-        return f"{self.teacher.full_name} - {self.standard.display_name}"
+        return self.display_name()
+
+    def display_name(self):
+        """Display method for class teacher"""
+        return f"{self.teacher.full_name()} - {self.standard.display_name()}"
 
 
 #one subject may have two techers, so correctly modeled this too
@@ -128,5 +133,8 @@ class TeacherSubject(models.Model):
         verbose_name = 'Subject Teacher'
     
     def __str__(self):
-        return f"{self.subject.name} -> {self.teacher.full_name}"
-        
+        return self.display_name()
+
+    def display_name(self):
+        """Display method for teacher subject"""
+        return f"{self.subject.display_name()} - {self.teacher.full_name()}"

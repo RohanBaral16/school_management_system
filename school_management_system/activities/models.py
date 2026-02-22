@@ -4,6 +4,10 @@ from nepali_datetime_field.models import NepaliDateField
 import nepali_datetime
 
 
+# Import StudentEnrollment for proxy model
+from academics.models import StudentEnrollment
+
+
 # --- ATTENDANCE ---
 class Attendance(models.Model):
     ATTENDANCE_CHOICES = [
@@ -31,9 +35,9 @@ class Attendance(models.Model):
     # def __str__(self):
     #     return f"{self.student} - {self.date} ({self.status})"
     
-    @property
     def display_name(self):
-        return f"{self.student.student.full_name if hasattr(self.student, 'student') else self.student} - {self.date} ({self.status})"
+        """Display method for attendance"""
+        return f"{self.student.full_name()} - {self.date} ({self.status})"
 
 # --- EXAMS ---
 class Exam(models.Model):
@@ -58,9 +62,9 @@ class Exam(models.Model):
     # def __str__(self):
     #     return self.name
     
-    @property
     def display_name(self):
-        return self.name
+        """Display method for exam"""
+        return f"{self.name} ({self.academic_year.display_name()})"
 
 
 class ExamSubject(models.Model):
@@ -94,10 +98,11 @@ class ExamSubject(models.Model):
     # def __str__(self):
     #     return f"ExamSubject #{self.pk}"
     
-    @property
     def display_name(self):
-        subj_name = self.subject.name if self.subject else "Unknown"
-        return f"{self.exam.name} - {subj_name}"
+        """Display method for exam subject"""
+        if self.subject:
+            return f"{self.exam.display_name()} - {self.subject.display_name()}"
+        return f"{self.exam.display_name()} - ExamSubject #{self.pk}"
     
 
 # --- RESULTS ---
@@ -178,42 +183,19 @@ class SubjectResult(models.Model):
 
     # def __str__(self):
     #     return f"{self.student} - {self.exam_subject.subject.name}: {self.subject_grade}"
-    
-    def __str__(self):
-        return f"SubjectResult #{self.pk}"
-    
-    @property
-    def display_name(self):
-        subject_name = self.exam_subject.subject.name if self.exam_subject.subject else "Unknown"
-        return f"{self.student} - {subject_name}: {self.subject_grade}"
-    
-
-
-# --- MISSING MODEL (This solves your ImportError) ---
-class StudentMarksheet(models.Model):
-    resultsummary = models.ForeignKey('activities.StudentResultSummary', on_delete=models.CASCADE)
-    result = models.ForeignKey('activities.SubjectResult', on_delete=models.CASCADE)
-
-    class Meta:
-        db_table = 'activities_resultsummary_results'
-        managed = False
-        verbose_name = 'Subject Result'
-        verbose_name_plural = 'Subject Results'
-
     # def __str__(self):
-    #     return ""
+    #     return f"SubjectResult #{self.pk}"
+    
+    def display_name(self):
+        """Display method for subject result"""
+        return f"{self.student.display_name()} - {self.exam_subject.display_name()}: {self.subject_grade}"
+    
 
 
 class StudentResultSummary(models.Model):
     student = models.ForeignKey('academics.StudentEnrollment', on_delete=models.CASCADE)
     exam = models.ForeignKey(Exam, on_delete=models.CASCADE)
     academic_year = models.ForeignKey('academics.AcademicYear', on_delete=models.PROTECT)
-    results = models.ManyToManyField(
-        'activities.SubjectResult',
-        blank=True,
-        related_name='summaries',
-        through='activities.StudentMarksheet',
-    )
     
     total_marks = models.DecimalField(max_digits=7, decimal_places=2, default=0)
     percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0)
@@ -228,6 +210,32 @@ class StudentResultSummary(models.Model):
     # def __str__(self):
     #     return f"{self.student} - {self.exam.name}"
     
-    @property
     def display_name(self):
-        return f"{self.student.student.full_name if hasattr(self.student, 'student') else self.student} - {self.exam.name}"
+        """Display method for student result summary"""
+        return f"{self.student.display_name()} - {self.exam.display_name()}"
+    
+    def get_subject_results(self):
+        """
+        Dynamically fetch subject results for this student and exam.
+        This replaces the old M2M relationship.
+        """
+        return SubjectResult.objects.filter(
+            student=self.student,
+            exam_subject__exam=self.exam
+        )
+
+
+# ============================================================
+# PROXY MODEL FOR STUDENT MARKSHEET VIEW
+# ============================================================
+
+class StudentMarksheet(StudentEnrollment):
+    """
+    Proxy model for viewing individual student marksheets in admin.
+    This allows us to have a separate admin interface focused on marksheet viewing
+    without duplicating the StudentEnrollment model.
+    """
+    class Meta:
+        proxy = True
+        verbose_name = "Student Marksheet"
+        verbose_name_plural = "Student Marksheets"
