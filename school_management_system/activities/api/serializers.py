@@ -35,6 +35,8 @@ class ExamSerializer(serializers.ModelSerializer):
 
 
 class ExamWriteSerializer(serializers.ModelSerializer):
+    start_date = serializers.CharField()
+    end_date = serializers.CharField()
     academic_year_id = serializers.PrimaryKeyRelatedField(
         source='academic_year',
         queryset=AcademicYearSerializer.Meta.model.objects.all(),
@@ -107,6 +109,7 @@ class AttendanceSerializer(serializers.ModelSerializer):
 
 
 class AttendanceWriteSerializer(serializers.ModelSerializer):
+    date = serializers.CharField()
     student_id = serializers.PrimaryKeyRelatedField(
         source='student',
         queryset=StudentSerializer.Meta.model.objects.all(),
@@ -182,6 +185,7 @@ class ExamSubjectSerializer(serializers.ModelSerializer):
 
 
 class ExamSubjectWriteSerializer(serializers.ModelSerializer):
+    exam_date = serializers.CharField()
     exam_id = serializers.PrimaryKeyRelatedField(
         source='exam',
         queryset=Exam.objects.all(),

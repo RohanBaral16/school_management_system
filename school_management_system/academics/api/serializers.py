@@ -107,7 +107,7 @@ class StandardWriteSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id']
     
-    def validate_unique_together(self, data):
+    def validate(self, data):
         """Validate unique_together constraint for name + section."""
         name = data.get('name')
         section = data.get('section')
@@ -252,7 +252,7 @@ class StudentEnrollmentWriteSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id']
     
-    def validate_unique_together(self, data):
+    def validate(self, data):
         """Validate unique_together constraints."""
         student = data.get('student')
         academic_year = data.get('academic_year')
@@ -345,7 +345,7 @@ class ClassTeacherWriteSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id']
     
-    def validate_unique_together(self, data):
+    def validate(self, data):
         """Validate unique_together constraint."""
         teacher = data.get('teacher')
         standard = data.get('standard')

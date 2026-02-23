@@ -7,7 +7,9 @@ from django.test import TestCase
 from django.contrib.auth.models import User
 from rest_framework.test import APIClient, APITestCase
 from rest_framework import status
-from datetime import date
+import nepali_datetime
+
+NEPALI_DATE_STR = "2081-01-01"
 
 from accounts.models import Student, Teacher
 from academics.models import (
@@ -51,10 +53,10 @@ class ExamAPITestCase(APITestCase):
         
         self.exam = Exam.objects.create(
             name='Mid Term',
-            term='first',
+            term='first_term',
             academic_year=self.academic_year,
-            start_date=date.today(),
-            end_date=date.today(),
+            start_date=NEPALI_DATE_STR,
+            end_date=NEPALI_DATE_STR,
         )
         
         self.api_url = '/api/exams/'
@@ -73,10 +75,10 @@ class ExamAPITestCase(APITestCase):
         
         data = {
             'name': 'Final Exam',
-            'term': 'second',
+            'term': 'second_term',
             'academic_year_id': self.academic_year.id,
-            'start_date': '2026-03-01',
-            'end_date': '2026-03-15',
+            'start_date': NEPALI_DATE_STR,
+            'end_date': NEPALI_DATE_STR,
             'is_published': False
         }
         response = self.client.post(self.api_url, data, format='json')
@@ -98,10 +100,10 @@ class ExamAPITestCase(APITestCase):
         
         data = {
             'name': 'Midterm Exam',
-            'term': 'first',
+            'term': 'first_term',
             'academic_year_id': self.academic_year.id,
-            'start_date': '2026-02-01',
-            'end_date': '2026-02-10',
+            'start_date': NEPALI_DATE_STR,
+            'end_date': NEPALI_DATE_STR,
             'is_published': True
         }
         response = self.client.put(f'{self.api_url}{self.exam.id}/', data, format='json')
@@ -162,17 +164,20 @@ class ExamSubjectAPITestCase(APITestCase):
         
         self.exam = Exam.objects.create(
             name='Mid Term',
-            term='first',
-            academic_year=self.academic_year
+            term='first_term',
+            academic_year=self.academic_year,
+            start_date=NEPALI_DATE_STR,
+            end_date=NEPALI_DATE_STR,
         )
         
         self.exam_subject = ExamSubject.objects.create(
             exam=self.exam,
             subject=self.subject,
-            total_marks=100,
-            pass_marks=40,
-            marks_distribution_theory=60,
-            marks_distribution_practical=40
+            exam_date=NEPALI_DATE_STR,
+            full_marks_theory=60,
+            pass_marks_theory=24,
+            full_marks_practical=40,
+            pass_marks_practical=16,
         )
         
         self.api_url = '/api/exam-subjects/'
@@ -199,10 +204,11 @@ class ExamSubjectAPITestCase(APITestCase):
         data = {
             'exam_id': self.exam.id,
             'subject_id': subject2.id,
-            'total_marks': 100,
-            'pass_marks': 35,
-            'marks_distribution_theory': 75,
-            'marks_distribution_practical': 25
+            'exam_date': NEPALI_DATE_STR,
+            'full_marks_theory': 75,
+            'pass_marks_theory': 27,
+            'full_marks_practical': 25,
+            'pass_marks_practical': 9
         }
         response = self.client.post(self.api_url, data, format='json')
         
@@ -214,7 +220,7 @@ class ExamSubjectAPITestCase(APITestCase):
         response = self.client.get(f'{self.api_url}{self.exam_subject.id}/')
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['total_marks'], 100)
+        self.assertEqual(float(response.data['full_marks_theory']), 60.0)
 
 
 class SubjectResultAPITestCase(APITestCase):
@@ -270,21 +276,35 @@ class SubjectResultAPITestCase(APITestCase):
         
         self.exam = Exam.objects.create(
             name='Mid Term',
-            term='first',
-            academic_year=self.academic_year
+            term='first_term',
+            academic_year=self.academic_year,
+            start_date=NEPALI_DATE_STR,
+            end_date=NEPALI_DATE_STR,
         )
         
         self.exam_subject = ExamSubject.objects.create(
             exam=self.exam,
             subject=self.subject,
-            total_marks=100
+            exam_date=NEPALI_DATE_STR,
+            full_marks_theory=75,
+            pass_marks_theory=27,
+            full_marks_practical=25,
+            pass_marks_practical=9,
         )
         
-        self.result = SubjectResult.objects.create(
+        self.enrollment = StudentEnrollment.objects.create(
             student=self.student,
+            standard=self.standard,
+            roll_number='1',
+            academic_year=self.academic_year,
+            status='enrolled'
+        )
+
+        self.result = SubjectResult.objects.create(
+            student=self.enrollment,
             exam_subject=self.exam_subject,
             marks_obtained_theory=50,
-            marks_obtained_practical=30
+            marks_obtained_practical=20
         )
         
         self.api_url = '/api/subject-results/'
@@ -305,14 +325,22 @@ class SubjectResultAPITestCase(APITestCase):
             email='john.s@test.com',
             admission_number='ADM002'
         )
+
+        enrollment2 = StudentEnrollment.objects.create(
+            student=student2,
+            standard=self.standard,
+            roll_number='2',
+            academic_year=self.academic_year,
+            status='enrolled'
+        )
         
         self.client.force_authenticate(user=self.teacher_user)
         
         data = {
-            'student_id': student2.id,
+            'student_id': enrollment2.id,
             'exam_subject_id': self.exam_subject.id,
             'marks_obtained_theory': 45,
-            'marks_obtained_practical': 35
+            'marks_obtained_practical': 20
         }
         response = self.client.post(self.api_url, data, format='json')
         
@@ -324,7 +352,7 @@ class SubjectResultAPITestCase(APITestCase):
         response = self.client.get(f'{self.api_url}{self.result.id}/')
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['marks_obtained_theory'], 50)
+        self.assertEqual(response.data['marks_obtained_theory'], '50.00')
 
 
 class StudentResultSummaryAPITestCase(APITestCase):
@@ -354,12 +382,22 @@ class StudentResultSummaryAPITestCase(APITestCase):
         
         self.exam = Exam.objects.create(
             name='Mid Term',
-            term='first',
-            academic_year=self.academic_year
+            term='first_term',
+            academic_year=self.academic_year,
+            start_date=NEPALI_DATE_STR,
+            end_date=NEPALI_DATE_STR,
         )
         
-        self.summary = StudentResultSummary.objects.create(
+        self.enrollment = StudentEnrollment.objects.create(
             student=self.student,
+            standard=Standard.objects.create(name='9', section='A'),
+            roll_number='1',
+            academic_year=self.academic_year,
+            status='enrolled'
+        )
+
+        self.summary = StudentResultSummary.objects.create(
+            student=self.enrollment,
             exam=self.exam,
             academic_year=self.academic_year,
             total_marks=160,
@@ -383,8 +421,8 @@ class StudentResultSummaryAPITestCase(APITestCase):
         response = self.client.get(f'{self.api_url}{self.summary.id}/')
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['total_marks'], 160)
-        self.assertEqual(response.data['gpa'], 3.8)
+        self.assertEqual(response.data['total_marks'], '160.00')
+        self.assertEqual(response.data['gpa'], '3.80')
 
 
 class AttendanceAPITestCase(APITestCase):
@@ -445,7 +483,7 @@ class AttendanceAPITestCase(APITestCase):
             subject=self.subject,
             recorded_by=self.teacher,
             status='present',
-            date=date.today()
+            date=NEPALI_DATE_STR
         )
         
         self.api_url = '/api/attendance/'
@@ -476,7 +514,7 @@ class AttendanceAPITestCase(APITestCase):
             'subject_id': self.subject.id,
             'recorded_by_id': self.teacher.id,
             'status': 'absent',
-            'date': '2026-02-23'
+            'date': NEPALI_DATE_STR
         }
         response = self.client.post(self.api_url, data, format='json')
         
