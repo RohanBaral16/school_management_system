@@ -6,15 +6,16 @@ from academics.api.serializers import (
     AcademicYearSerializer,
 )
 from accounts.api.serializers import StudentSerializer, TeacherSerializer
+from accounts.models import Student, Teacher
+from academics.models import ClassTeacher, Subject, AcademicYear, Standard
 from ..models import SubjectResult, ExamSubject, StudentResultSummary, Attendance, Exam
-from academics.models import ClassTeacher, Subject
 
 
 class ExamSerializer(serializers.ModelSerializer):
     academic_year = AcademicYearSerializer(read_only=True)
     academic_year_id = serializers.PrimaryKeyRelatedField(
         source='academic_year',
-        queryset=Exam.objects.none(),
+        queryset=AcademicYear.objects.all(),
         write_only=True,
     )
 
@@ -56,13 +57,13 @@ class AttendanceSerializer(serializers.ModelSerializer):
     student = StudentSerializer(read_only=True)
     student_id = serializers.PrimaryKeyRelatedField(
         source='student',
-        queryset=StudentSerializer.Meta.model.objects.all(),
+        queryset=Student.objects.all(),
         write_only=True,
     )
     standard = StandardSerializer(read_only=True)
     standard_id = serializers.PrimaryKeyRelatedField(
         source='standard',
-        queryset=StandardSerializer.Meta.model.objects.all(),
+        queryset=Standard.objects.all(),
         write_only=True,
     )
     subject = serializers.SerializerMethodField(read_only=True)
@@ -70,14 +71,14 @@ class AttendanceSerializer(serializers.ModelSerializer):
     recorded_by = TeacherSerializer(read_only=True)
     recorded_by_id = serializers.PrimaryKeyRelatedField(
         source='recorded_by',
-        queryset=TeacherSerializer.Meta.model.objects.all(),
+        queryset=Teacher.objects.all(),
         write_only=True,
         required=False,
     )
     academic_year = AcademicYearSerializer(read_only=True)
     academic_year_id = serializers.PrimaryKeyRelatedField(
         source='academic_year',
-        queryset=AcademicYearSerializer.Meta.model.objects.all(),
+        queryset=AcademicYear.objects.all(),
         write_only=True,
     )
 

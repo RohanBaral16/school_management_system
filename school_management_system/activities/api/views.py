@@ -43,7 +43,7 @@ def _update_result_summary(student, exam):
         student=student,
         exam=exam,
         defaults={
-            'academic_year': student.academic_year,
+            'academic_year': exam.academic_year,
             'total_marks': total_marks,
             'gpa': 0 if has_ng else avg_gpa,
             'overall_grade': 'NG' if has_ng else 'PASS',

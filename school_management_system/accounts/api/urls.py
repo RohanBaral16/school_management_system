@@ -1,11 +1,21 @@
-from rest_framework.routers import DefaultRouter
-from django.urls import path, include
-from .views import StudentReadOnlyViewSet, TeacherReadOnlyViewSet
-router = DefaultRouter()
+"""
+URL configuration for Accounts API.
+Exports viewsets for main router in urls.py
+"""
 
-router.register(r'students-readonly', StudentReadOnlyViewSet , basename='students-readonly')
-router.register(r'teachers-readonly', TeacherReadOnlyViewSet, basename='teachers-readonly')
+from .views import (
+    StudentViewSet,
+    StudentReadOnlyViewSet,
+    TeacherViewSet,
+    TeacherReadOnlyViewSet,
+)
 
-urlpatterns = [
-    path('', include(router.urls))
+# Export viewsets for main router
+api_viewsets = [
+    ('students', StudentViewSet, 'students'),
+    ('teachers', TeacherViewSet, 'teachers'),
+    ('students-readonly', StudentReadOnlyViewSet, 'students-readonly'),
+    ('teachers-readonly', TeacherReadOnlyViewSet, 'teachers-readonly'),
 ]
+
+urlpatterns = []
