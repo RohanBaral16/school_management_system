@@ -9,18 +9,33 @@ from ..models import Student, Teacher
 
 
 # ============================================================================
+# USER SERIALIZER
+# ============================================================================
+
+class UserSerializer(serializers.ModelSerializer):
+    """Serializer for Django User model."""
+    
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'first_name', 'last_name', 'email', 'is_staff', 'is_superuser']
+        read_only_fields = ['id']
+
+
+# ============================================================================
 # STUDENT SERIALIZERS
 # ============================================================================
 
 class StudentSerializer(serializers.ModelSerializer):
     """Read-only serializer for Student with nested fields."""
     
+    user = UserSerializer(read_only=True)
     full_name = serializers.SerializerMethodField(read_only=True)
     
     class Meta:
         model = Student
         fields = [
             'id',
+            'user',
             'full_name',
             'first_name',
             'middle_name',
@@ -44,10 +59,19 @@ class StudentSerializer(serializers.ModelSerializer):
 class StudentWriteSerializer(serializers.ModelSerializer):
     """Write serializer for Student with flat field structure."""
     
+    user_id = serializers.PrimaryKeyRelatedField(
+        source='user',
+        queryset=User.objects.all(),
+        write_only=True,
+        required=False,
+        allow_null=True,
+    )
+    
     class Meta:
         model = Student
         fields = [
             'id',
+            'user_id',
             'first_name',
             'middle_name',
             'last_name',
@@ -85,15 +109,6 @@ class StudentWriteSerializer(serializers.ModelSerializer):
 # ============================================================================
 # TEACHER SERIALIZERS
 # ============================================================================
-
-class UserSerializer(serializers.ModelSerializer):
-    """Serializer for Django User model."""
-    
-    class Meta:
-        model = User
-        fields = ['id', 'username', 'first_name', 'last_name', 'email', 'is_staff', 'is_superuser']
-        read_only_fields = ['id']
-
 
 class TeacherSerializer(serializers.ModelSerializer):
     """Read-only serializer for Teacher with nested fields."""

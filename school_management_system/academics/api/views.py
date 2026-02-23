@@ -152,6 +152,34 @@ class StudentEnrollmentViewSet(ModelViewSet):
         if self.request.method in ['POST', 'PUT', 'PATCH']:
             return StudentEnrollmentWriteSerializer
         return StudentEnrollmentSerializer
+    
+    def get_queryset(self):
+        """Filter queryset based on user role."""
+        from accounts.models import Student, Teacher
+        user = self.request.user
+        
+        # Admin/Superuser can see all enrollments
+        if user.is_staff or user.is_superuser:
+            return StudentEnrollment.objects.select_related('student', 'standard', 'academic_year')
+        
+        # Teachers can see enrollments for their assigned classes
+        try:
+            teacher = Teacher.objects.get(user=user)
+            class_standards = ClassTeacher.objects.filter(teacher=teacher).values_list('standard', flat=True)
+            subject_standards = TeacherSubject.objects.filter(teacher=teacher).values_list('subject__standard', flat=True)
+            all_standards = set(list(class_standards) + list(subject_standards))
+            return StudentEnrollment.objects.filter(standard__in=all_standards).select_related('student', 'standard', 'academic_year')
+        except Teacher.DoesNotExist:
+            pass
+        
+        # Students can see only their own enrollments
+        try:
+            student = Student.objects.get(user=user)
+            return StudentEnrollment.objects.filter(student=student).select_related('student', 'standard', 'academic_year')
+        except Student.DoesNotExist:
+            pass
+        
+        return StudentEnrollment.objects.none()
 
 
 class StudentEnrollmentReadOnlyViewSet(ReadOnlyModelViewSet):
@@ -183,6 +211,32 @@ class ClassTeacherViewSet(ModelViewSet):
         if self.request.method in ['POST', 'PUT', 'PATCH']:
             return ClassTeacherWriteSerializer
         return ClassTeacherSerializer
+    
+    def get_queryset(self):
+        """Filter queryset based on user role."""
+        from accounts.models import Student, Teacher
+        user = self.request.user
+        
+        # Admin/Superuser can see all class teacher assignments
+        if user.is_staff or user.is_superuser:
+            return ClassTeacher.objects.select_related('standard', 'teacher', 'academic_year')
+        
+        # Teachers can see class teacher assignments for their classes
+        try:
+            teacher = Teacher.objects.get(user=user)
+            return ClassTeacher.objects.filter(teacher=teacher).select_related('standard', 'teacher', 'academic_year')
+        except Teacher.DoesNotExist:
+            pass
+        
+        # Students can see class teachers for their enrolled standards
+        try:
+            student = Student.objects.get(user=user)
+            enrolled_standards = StudentEnrollment.objects.filter(student=student).values_list('standard', flat=True)
+            return ClassTeacher.objects.filter(standard__in=enrolled_standards).select_related('standard', 'teacher', 'academic_year')
+        except Student.DoesNotExist:
+            pass
+        
+        return ClassTeacher.objects.none()
 
 
 class ClassTeacherReadOnlyViewSet(ReadOnlyModelViewSet):
@@ -214,6 +268,32 @@ class TeacherSubjectViewSet(ModelViewSet):
         if self.request.method in ['POST', 'PUT', 'PATCH']:
             return TeacherSubjectWriteSerializer
         return TeacherSubjectSerializer
+    
+    def get_queryset(self):
+        """Filter queryset based on user role."""
+        from accounts.models import Student, Teacher
+        user = self.request.user
+        
+        # Admin/Superuser can see all teacher-subject assignments
+        if user.is_staff or user.is_superuser:
+            return TeacherSubject.objects.select_related('subject', 'teacher', 'academic_year')
+        
+        # Teachers can see their own subject assignments
+        try:
+            teacher = Teacher.objects.get(user=user)
+            return TeacherSubject.objects.filter(teacher=teacher).select_related('subject', 'teacher', 'academic_year')
+        except Teacher.DoesNotExist:
+            pass
+        
+        # Students can see teacher-subject assignments for their enrolled standards
+        try:
+            student = Student.objects.get(user=user)
+            enrolled_standards = StudentEnrollment.objects.filter(student=student).values_list('standard', flat=True)
+            return TeacherSubject.objects.filter(subject__standard__in=enrolled_standards).select_related('subject', 'teacher', 'academic_year')
+        except Student.DoesNotExist:
+            pass
+        
+        return TeacherSubject.objects.none()
 
 
 class TeacherSubjectReadOnlyViewSet(ReadOnlyModelViewSet):

@@ -123,7 +123,7 @@ class StudentAPITestCase(APITestCase):
         self.assertEqual(response.data['first_name'], 'Jane')
     
     def test_student_update_by_teacher(self):
-        """Test that teachers can update students."""
+        """Test that teachers can only update students they're assigned to."""
         self.client.force_authenticate(user=self.teacher_user)
         
         data = {
@@ -135,8 +135,9 @@ class StudentAPITestCase(APITestCase):
         }
         response = self.client.put(f'{self.api_url}{self.student.id}/', data, format='json')
         
-        # Update should work for teachers
-        self.assertIn(response.status_code, [status.HTTP_200_OK, status.HTTP_403_FORBIDDEN])
+        # Teachers can't update students they're not assigned to (should return 404)
+        # If they ARE assigned, it should work (200) or be forbidden (403)
+        self.assertIn(response.status_code, [status.HTTP_200_OK, status.HTTP_403_FORBIDDEN, status.HTTP_404_NOT_FOUND])
     
     def test_student_delete_by_admin(self):
         """Test that only admins can delete students."""

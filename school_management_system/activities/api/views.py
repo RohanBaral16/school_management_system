@@ -1,6 +1,6 @@
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 from rest_framework.permissions import IsAuthenticated
-from django.db.models import Avg, Sum
+from django.db.models import Avg, Sum, Q
 
 from ..models import SubjectResult, ExamSubject, StudentResultSummary, Attendance, Exam
 from .serializers import (
@@ -59,6 +59,33 @@ class ExamViewSet(ModelViewSet):
         if self.action in ['create', 'update', 'partial_update']:
             return ExamWriteSerializer
         return ExamSerializer
+    
+    def get_queryset(self):
+        """Filter queryset based on user role."""
+        from accounts.models import Student, Teacher
+        from academics.models import StudentEnrollment
+        user = self.request.user
+        
+        # Admin/Superuser can see all exams
+        if user.is_staff or user.is_superuser:
+            return Exam.objects.select_related('academic_year')
+        
+        # Teachers can see all exams
+        try:
+            teacher = Teacher.objects.get(user=user)
+            return Exam.objects.select_related('academic_year')
+        except Teacher.DoesNotExist:
+            pass
+        
+        # Students can see exams for their enrolled academic years
+        try:
+            student = Student.objects.get(user=user)
+            enrolled_years = StudentEnrollment.objects.filter(student=student).values_list('academic_year', flat=True)
+            return Exam.objects.filter(academic_year__in=enrolled_years).select_related('academic_year')
+        except Student.DoesNotExist:
+            pass
+        
+        return Exam.objects.none()
 
 
 class AttendanceViewSet(ModelViewSet):
@@ -92,6 +119,41 @@ class ExamSubjectViewSet(ModelViewSet):
         if self.action in ['create', 'update', 'partial_update']:
             return ExamSubjectWriteSerializer
         return ExamSubjectSerializer
+    
+    def get_queryset(self):
+        """Filter queryset based on user role."""
+        from accounts.models import Student, Teacher
+        from academics.models import StudentEnrollment, TeacherSubject, ClassTeacher
+        user = self.request.user
+        
+        # Admin/Superuser can see all exam subjects
+        if user.is_staff or user.is_superuser:
+            return ExamSubject.objects.select_related(
+                'exam', 'exam__academic_year', 'subject', 'subject__standard', 'standard'
+            )
+        
+        # Teachers can see exam subjects for their assigned subjects/standards
+        try:
+            teacher = Teacher.objects.get(user=user)
+            teacher_subjects = TeacherSubject.objects.filter(teacher=teacher).values_list('subject', flat=True)
+            teacher_standards = ClassTeacher.objects.filter(teacher=teacher).values_list('standard', flat=True)
+            return ExamSubject.objects.filter(
+                Q(subject__in=teacher_subjects) | Q(standard__in=teacher_standards)
+            ).select_related('exam', 'exam__academic_year', 'subject', 'subject__standard', 'standard')
+        except Teacher.DoesNotExist:
+            pass
+        
+        # Students can see exam subjects for their enrolled standards
+        try:
+            student = Student.objects.get(user=user)
+            enrolled_standards = StudentEnrollment.objects.filter(student=student).values_list('standard', flat=True)
+            return ExamSubject.objects.filter(standard__in=enrolled_standards).select_related(
+                'exam', 'exam__academic_year', 'subject', 'subject__standard', 'standard'
+            )
+        except Student.DoesNotExist:
+            pass
+        
+        return ExamSubject.objects.none()
 
 
 class SubjectResultViewSet(ModelViewSet):
@@ -104,14 +166,56 @@ class SubjectResultViewSet(ModelViewSet):
         return SubjectResultSerializer
 
     def get_queryset(self):
-        return SubjectResult.objects.select_related(
-            'exam_subject__exam__academic_year',
-            'exam_subject__subject__standard',
-            'exam_subject__standard',
-            'student__student',
-            'student__standard',
-            'student__academic_year',
-        )
+        """Filter queryset based on user role."""
+        from accounts.models import Student, Teacher
+        from academics.models import StudentEnrollment, TeacherSubject, ClassTeacher
+        user = self.request.user
+        
+        # Admin/Superuser can see all results
+        if user.is_staff or user.is_superuser:
+            return SubjectResult.objects.select_related(
+                'exam_subject__exam__academic_year',
+                'exam_subject__subject__standard',
+                'exam_subject__standard',
+                'student__student',
+                'student__standard',
+                'student__academic_year',
+            )
+        
+        # Teachers can see results for their assigned students
+        try:
+            teacher = Teacher.objects.get(user=user)
+            class_standards = ClassTeacher.objects.filter(teacher=teacher).values_list('standard', flat=True)
+            subject_standards = TeacherSubject.objects.filter(teacher=teacher).values_list('subject__standard', flat=True)
+            all_standards = set(list(class_standards) + list(subject_standards))
+            student_enrollments = StudentEnrollment.objects.filter(standard__in=all_standards).values_list('id', flat=True)
+            return SubjectResult.objects.filter(student__in=student_enrollments).select_related(
+                'exam_subject__exam__academic_year',
+                'exam_subject__subject__standard',
+                'exam_subject__standard',
+                'student__student',
+                'student__standard',
+                'student__academic_year',
+            )
+        except Teacher.DoesNotExist:
+            pass
+        
+        # Students can see only their own results
+        try:
+            student = Student.objects.get(user=user)
+            student_enrollments = StudentEnrollment.objects.filter(student=student).values_list('id', flat=True)
+            return SubjectResult.objects.filter(student__in=student_enrollments).select_related(
+                'exam_subject__exam__academic_year',
+                'exam_subject__subject__standard',
+                'exam_subject__standard',
+                'student__student',
+                'student__standard',
+                'student__academic_year',
+            )
+        except Student.DoesNotExist:
+            pass
+        
+        return SubjectResult.objects.none()
 
     def perform_create(self, serializer):
         result = serializer.save()
@@ -143,6 +247,46 @@ class StudentResultSummaryViewSet(ModelViewSet):
         if self.action in ['create', 'update', 'partial_update']:
             return StudentResultSummaryWriteSerializer
         return StudentResultSummarySerializer
+    
+    def get_queryset(self):
+        """Filter queryset based on user role."""
+        from accounts.models import Student, Teacher
+        from academics.models import StudentEnrollment, TeacherSubject, ClassTeacher
+        user = self.request.user
+        
+        # Admin/Superuser can see all result summaries
+        if user.is_staff or user.is_superuser:
+            return StudentResultSummary.objects.select_related(
+                'student__student', 'student__standard', 'student__academic_year',
+                'exam__academic_year', 'academic_year'
+            )
+        
+        # Teachers can see result summaries for their assigned students
+        try:
+            teacher = Teacher.objects.get(user=user)
+            class_standards = ClassTeacher.objects.filter(teacher=teacher).values_list('standard', flat=True)
+            subject_standards = TeacherSubject.objects.filter(teacher=teacher).values_list('subject__standard', flat=True)
+            all_standards = set(list(class_standards) + list(subject_standards))
+            student_enrollments = StudentEnrollment.objects.filter(standard__in=all_standards).values_list('id', flat=True)
+            return StudentResultSummary.objects.filter(student__in=student_enrollments).select_related(
+                'student__student', 'student__standard', 'student__academic_year',
+                'exam__academic_year', 'academic_year'
+            )
+        except Teacher.DoesNotExist:
+            pass
+        
+        # Students can see only their own result summaries
+        try:
+            student = Student.objects.get(user=user)
+            student_enrollments = StudentEnrollment.objects.filter(student=student).values_list('id', flat=True)
+            return StudentResultSummary.objects.filter(student__in=student_enrollments).select_related(
+                'student__student', 'student__standard', 'student__academic_year',
+                'exam__academic_year', 'academic_year'
+            )
+        except Student.DoesNotExist:
+            pass
+        
+        return StudentResultSummary.objects.none()
 
     def perform_create(self, serializer):
         summary = serializer.save(academic_year=serializer.validated_data['student'].academic_year)
