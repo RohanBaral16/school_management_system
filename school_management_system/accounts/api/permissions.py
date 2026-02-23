@@ -63,17 +63,28 @@ class ReadOnlyIfNotTeacher(BasePermission):
     """Non-teachers can only read. Teachers and admins have full access."""
     
     def has_permission(self, request, view):
-        return bool(request.user and request.user.is_authenticated)
-    
-    def has_object_permission(self, request, view, obj):
+        # Unauthenticated users cannot access
+        if not request.user or not request.user.is_authenticated:
+            return False
+        
         # Allow read access to all authenticated users
         if request.method in ['GET', 'HEAD', 'OPTIONS']:
             return True
         
-        # Write access only for teachers/admins
-        if not request.user.is_superuser:
-            teacher_exists = Teacher.objects.filter(user=request.user).exists()
-            if not teacher_exists:
-                return False
+        # Write access (POST, PUT, PATCH, DELETE) only for teachers/admins
+        if request.user.is_superuser:
+            return True
         
-        return True
+        return Teacher.objects.filter(user=request.user).exists()
+    
+    def has_object_permission(self, request, view, obj):
+        """Teachers can only modify their own records."""
+        # Read access for all authenticated
+        if request.method in ['GET', 'HEAD', 'OPTIONS']:
+            return True
+        
+        # Write access only for teachers/admins
+        if request.user.is_superuser:
+            return True
+        
+        return Teacher.objects.filter(user=request.user).exists()
