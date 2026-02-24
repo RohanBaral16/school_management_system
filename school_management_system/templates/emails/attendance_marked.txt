@@ -1,0 +1,14 @@
+Attendance Recorded - {{ date }}
+
+Dear {{ user.first_name }},
+
+Your attendance has been recorded for {{ date }}.
+
+Date: {{ date }}
+Standard: {{ standard }}
+Status: {{ status }}
+
+If you believe this is incorrect, please contact your class teacher or the school office.
+
+Thank you,
+School Management System

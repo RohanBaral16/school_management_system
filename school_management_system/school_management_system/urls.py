@@ -28,6 +28,7 @@ router = DefaultRouter()
 from accounts.api.urls import api_viewsets as accounts_viewsets
 from academics.api.urls import api_viewsets as academics_viewsets
 from activities.api.urls import api_viewsets as activities_viewsets
+from core.notification_views import NotificationViewSet, NotificationPreferenceViewSet
 
 for prefix, viewset, basename in accounts_viewsets:
     router.register(prefix, viewset, basename=basename)
@@ -37,6 +38,10 @@ for prefix, viewset, basename in academics_viewsets:
 
 for prefix, viewset, basename in activities_viewsets:
     router.register(prefix, viewset, basename=basename)
+
+# Register notification viewsets
+router.register(r'notifications', NotificationViewSet, basename='notification')
+router.register(r'notification-preferences', NotificationPreferenceViewSet, basename='notification-preference')
 
 urlpatterns = [
     path('admin/', admin.site.urls),

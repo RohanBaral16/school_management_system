@@ -1,0 +1,15 @@
+New Exam Scheduled - {{ exam_name }}
+
+Dear {{ user.first_name }},
+
+A new exam has been scheduled for your class.
+
+Exam: {{ exam_name }}
+Standard: {{ standard }}
+Start Date: {{ start_date }}
+End Date: {{ end_date }}
+
+Please prepare accordingly. More details will be provided soon.
+
+Thank you,
+School Management System

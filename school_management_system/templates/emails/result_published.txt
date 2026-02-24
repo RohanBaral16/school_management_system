@@ -1,0 +1,16 @@
+Result Published - {{ exam_name }}
+
+Dear {{ user.first_name }},
+
+Your results for {{ exam_name }} in {{ standard }} have been published.
+
+Please log in to your dashboard to view your detailed results and grades.
+
+Exam: {{ exam_name }}
+Standard: {{ standard }}
+Publication Date: {{ current_date }}
+
+If you have any questions about your results, please contact your class teacher or the school office.
+
+Thank you,
+School Management System
