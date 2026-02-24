@@ -18,6 +18,8 @@ from .serializers import (
 )
 from .permissions import IsTeacherOrAdmin, ReadOnlyIfNotTeacher
 from .filters import StudentFilter
+from core.bulk_operations import CSVImporter, BulkImportError
+from core.serializers import CSVImportSerializer, BulkOperationResponseSerializer
 
 
 # ============================================================================
@@ -90,6 +92,36 @@ class StudentViewSet(ModelViewSet):
         
         # If user is neither teacher nor student, return empty queryset
         return Student.objects.none()
+    
+    @action(detail=False, methods=['post'], permission_classes=[IsAuthenticated])
+    def bulk_import_csv(self, request):
+        """
+        Bulk import students from CSV file.
+        Expected CSV columns: first_name, last_name, middle_name, gender, email, phone, 
+                              date_of_birth, admission_number
+        """
+        # Check permission
+        if not request.user.is_staff:
+            return Response(
+                {'error': 'Only admin users can import bulk data'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        serializer = CSVImportSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            csv_file = serializer.validated_data['csv_file']
+            result = CSVImporter.import_students_csv(csv_file)
+            return Response(result, status=status.HTTP_200_OK)
+        except BulkImportError as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response(
+                {'error': f'An error occurred: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class StudentReadOnlyViewSet(ReadOnlyModelViewSet):

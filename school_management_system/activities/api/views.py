@@ -1,6 +1,11 @@
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Avg, Sum, Q
+from django.http import FileResponse
+from datetime import datetime
 
 from ..models import SubjectResult, ExamSubject, StudentResultSummary, Attendance, Exam
 from .serializers import (
@@ -18,6 +23,8 @@ from .serializers import (
 )
 from .filters import SubjectResultFilter, ExamSubjectFilter, StudentResultSummaryFilter, MarksheetDetailFilter
 from .permissions import IsAdminOrTeacher
+from core.bulk_operations import ExcelExporter
+from core.serializers import ExcelExportSerializer
 
 
 def _update_result_summary(student, exam):
@@ -106,6 +113,51 @@ class AttendanceViewSet(ModelViewSet):
         if self.action in ['create', 'update', 'partial_update']:
             return AttendanceWriteSerializer
         return AttendanceSerializer
+    
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    def export_to_excel(self, request):
+        """
+        Export attendance records to Excel file.
+        Query parameters (optional):
+        - standard_id: Filter by standard ID
+        - academic_year_id: Filter by academic year ID
+        - start_date: Filter from this date (YYYY-MM-DD)
+        - end_date: Filter up to this date (YYYY-MM-DD)
+        """
+        # Parse parameters
+        standard_id = request.query_params.get('standard_id')
+        academic_year_id = request.query_params.get('academic_year_id')
+        start_date = request.query_params.get('start_date')
+        end_date = request.query_params.get('end_date')
+        
+        try:
+            from academics.models import Standard, AcademicYear
+            
+            standard = None
+            academic_year = None
+            
+            if standard_id:
+                standard = Standard.objects.get(id=standard_id)
+            if academic_year_id:
+                academic_year = AcademicYear.objects.get(id=academic_year_id)
+            
+            excel_file = ExcelExporter.export_attendance_to_excel(
+                standard=standard,
+                academic_year=academic_year,
+                start_date=start_date,
+                end_date=end_date
+            )
+            
+            return FileResponse(
+                excel_file,
+                as_attachment=True,
+                filename=f'attendance_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
+            )
+        except Exception as e:
+            return Response(
+                {'error': f'Failed to export: {str(e)}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
 
 class ExamSubjectViewSet(ModelViewSet):
@@ -224,6 +276,52 @@ class SubjectResultViewSet(ModelViewSet):
             pass
         
         return SubjectResult.objects.none()
+    
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    def export_to_excel(self, request):
+        """
+        Export subject results to Excel file.
+        Query parameters (optional):
+        - standard_id: Filter by standard ID
+        - exam_id: Filter by exam ID
+        - academic_year_id: Filter by academic year ID
+        """
+        # Parse parameters
+        standard_id = request.query_params.get('standard_id')
+        exam_id = request.query_params.get('exam_id')
+        academic_year_id = request.query_params.get('academic_year_id')
+        
+        try:
+            from academics.models import Standard, AcademicYear
+            from activities.models import Exam
+            
+            standard = None
+            exam = None
+            academic_year = None
+            
+            if standard_id:
+                standard = Standard.objects.get(id=standard_id)
+            if exam_id:
+                exam = Exam.objects.get(id=exam_id)
+            if academic_year_id:
+                academic_year = AcademicYear.objects.get(id=academic_year_id)
+            
+            excel_file = ExcelExporter.export_results_to_excel(
+                standard=standard,
+                exam=exam,
+                academic_year=academic_year
+            )
+            
+            return FileResponse(
+                excel_file,
+                as_attachment=True,
+                filename=f'results_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
+            )
+        except Exception as e:
+            return Response(
+                {'error': f'Failed to export: {str(e)}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
     def perform_create(self, serializer):
         result = serializer.save()

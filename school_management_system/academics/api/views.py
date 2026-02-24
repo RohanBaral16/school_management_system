@@ -4,6 +4,9 @@ Implements CRUD operations with role-based permissions.
 """
 
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 
 from ..models import (
@@ -37,6 +40,8 @@ from .filters import (
     TeacherSubjectFilter,
 )
 from .permissions import IsAdminOrTeacher
+from core.bulk_operations import CSVImporter, BulkImportError
+from core.serializers import CSVImportSerializer
 
 
 # ACADEMIC YEAR VIEWSETS
@@ -191,6 +196,35 @@ class StudentEnrollmentViewSet(ModelViewSet):
             pass
         
         return StudentEnrollment.objects.none()
+    
+    @action(detail=False, methods=['post'], permission_classes=[IsAuthenticated])
+    def bulk_import_csv(self, request):
+        """
+        Bulk import enrollments from CSV file.
+        Expected CSV columns: admission_number, standard_name, academic_year_name, roll_number, status
+        """
+        # Check permission
+        if not request.user.is_staff:
+            return Response(
+                {'error': 'Only admin users can import bulk data'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        serializer = CSVImportSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            csv_file = serializer.validated_data['csv_file']
+            result = CSVImporter.import_enrollments_csv(csv_file)
+            return Response(result, status=status.HTTP_200_OK)
+        except BulkImportError as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response(
+                {'error': f'An error occurred: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class StudentEnrollmentReadOnlyViewSet(ReadOnlyModelViewSet):
