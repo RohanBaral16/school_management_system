@@ -1,0 +1,202 @@
+{
+  "info": {
+    "name": "School Management - Notification API",
+    "description": "API collection for the notification system",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000/api",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "YOUR_JWT_TOKEN_HERE",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "Get All Notifications",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/notifications/",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", ""]
+            }
+          }
+        },
+        {
+          "name": "Get Unread Notifications",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/notifications/unread/",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "unread", ""]
+            }
+          }
+        },
+        {
+          "name": "Mark Notification as Read",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/notifications/1/mark_read/",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "1", "mark_read", ""]
+            }
+          }
+        },
+        {
+          "name": "Mark All as Read",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/notifications/mark_all_as_read/",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "mark_all_as_read", ""]
+            }
+          }
+        },
+        {
+          "name": "Bulk Action",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"mark_read\",\n  \"notification_ids\": [1, 2, 3]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/notifications/bulk_action/",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "bulk_action", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Preferences",
+      "item": [
+        {
+          "name": "Get User Preferences",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/notification-preferences/settings/",
+              "host": ["{{base_url}}"],
+              "path": ["notification-preferences", "settings", ""]
+            }
+          }
+        },
+        {
+          "name": "Update Preferences",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"notifications_enabled\": true,\n  \"result_published\": true,\n  \"attendance_marked\": false,\n  \"exam_scheduled\": true,\n  \"quiet_hours_enabled\": true,\n  \"quiet_hours_start\": \"22:00:00\",\n  \"quiet_hours_end\": \"08:00:00\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/notification-preferences/1/update_preferences/",
+              "host": ["{{base_url}}"],
+              "path": ["notification-preferences", "1", "update_preferences", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Get JWT Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"your_username\",\n  \"password\": \"your_password\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/token/",
+              "host": ["{{base_url}}"],
+              "path": ["token", ""]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
