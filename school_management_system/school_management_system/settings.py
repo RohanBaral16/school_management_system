@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'debug_toolbar',
     'nepali_datetime_field',
     'rest_framework',
+    'drf_spectacular',
     'django_filters',
     #apps in the project
     'accounts',
@@ -143,7 +144,16 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_FILTER_BACKENDS': [
         'django_filters.rest_framework.DjangoFilterBackend',
+        'rest_framework.filters.OrderingFilter',
     ],
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 50,
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'School Management System API',
+    'DESCRIPTION': 'API documentation for the school management system.',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
 }

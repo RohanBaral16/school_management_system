@@ -35,6 +35,8 @@ class StudentViewSet(ModelViewSet):
     queryset = Student.objects.all()
     permission_classes = [IsAuthenticated, ReadOnlyIfNotTeacher]
     filterset_class = StudentFilter
+    ordering_fields = ['id', 'roll_number', 'user__first_name', 'user__last_name', 'date_of_birth']
+    ordering = ['user__first_name', 'user__last_name']
     
     def get_serializer_class(self):
         """
@@ -99,6 +101,8 @@ class StudentReadOnlyViewSet(ReadOnlyModelViewSet):
     serializer_class = StudentSerializer
     permission_classes = [IsAuthenticated]
     filterset_class = StudentFilter
+    ordering_fields = ['id', 'roll_number', 'user__first_name', 'user__last_name', 'date_of_birth']
+    ordering = ['user__first_name', 'user__last_name']
 
 
 # ============================================================================
@@ -116,6 +120,8 @@ class TeacherViewSet(ModelViewSet):
     
     queryset = Teacher.objects.select_related('user')
     permission_classes = [IsAuthenticated, IsTeacherOrAdmin]
+    ordering_fields = ['id', 'user__first_name', 'user__last_name', 'employee_id', 'date_of_birth']
+    ordering = ['user__first_name', 'user__last_name']
     
     def get_serializer_class(self):
         """
@@ -169,4 +175,6 @@ class TeacherReadOnlyViewSet(ReadOnlyModelViewSet):
     queryset = Teacher.objects.all()
     serializer_class = TeacherSerializer
     permission_classes = [IsAuthenticated]
+    ordering_fields = ['id', 'user__first_name', 'user__last_name', 'employee_id', 'date_of_birth']
+    ordering = ['user__first_name', 'user__last_name']
     

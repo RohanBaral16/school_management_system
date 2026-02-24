@@ -54,6 +54,8 @@ def _update_result_summary(student, exam):
 class ExamViewSet(ModelViewSet):
     permission_classes = [IsAuthenticated, IsAdminOrTeacher]
     queryset = Exam.objects.select_related('academic_year')
+    ordering_fields = ['id', 'title', 'exam_date', 'academic_year']
+    ordering = ['-exam_date']
 
     def get_serializer_class(self):
         if self.action in ['create', 'update', 'partial_update']:
@@ -97,6 +99,8 @@ class AttendanceViewSet(ModelViewSet):
         'recorded_by',
         'academic_year',
     )
+    ordering_fields = ['id', 'student', 'date', 'status', 'standard']
+    ordering = ['-date']
 
     def get_serializer_class(self):
         if self.action in ['create', 'update', 'partial_update']:
@@ -114,6 +118,8 @@ class ExamSubjectViewSet(ModelViewSet):
         'subject__standard',
         'standard',
     )
+    ordering_fields = ['id', 'exam', 'subject', 'standard', 'total_marks']
+    ordering = ['exam', 'subject']
 
     def get_serializer_class(self):
         if self.action in ['create', 'update', 'partial_update']:
@@ -159,6 +165,8 @@ class ExamSubjectViewSet(ModelViewSet):
 class SubjectResultViewSet(ModelViewSet):
     permission_classes = [IsAuthenticated, IsAdminOrTeacher]
     filterset_class = SubjectResultFilter
+    ordering_fields = ['id', 'student', 'exam_subject', 'marks_obtained_theory', 'marks_obtained_practical']
+    ordering = ['-exam_subject__exam']
 
     def get_serializer_class(self):
         if self.action in ['create', 'update', 'partial_update']:
@@ -242,6 +250,8 @@ class StudentResultSummaryViewSet(ModelViewSet):
         'exam__academic_year',
         'academic_year',
     )
+    ordering_fields = ['id', 'student', 'exam', 'total_marks', 'gpa', 'overall_grade']
+    ordering = ['-exam']
 
     def get_serializer_class(self):
         if self.action in ['create', 'update', 'partial_update']:
@@ -302,6 +312,8 @@ class ExamReadOnlyViewSet(ReadOnlyModelViewSet):
     serializer_class = ExamSerializer
     permission_classes = [IsAuthenticated]
     queryset = Exam.objects.select_related('academic_year')
+    ordering_fields = ['id', 'title', 'exam_date', 'academic_year']
+    ordering = ['-exam_date']
 
 
 class AttendanceReadOnlyViewSet(ReadOnlyModelViewSet):
@@ -314,6 +326,8 @@ class AttendanceReadOnlyViewSet(ReadOnlyModelViewSet):
         'recorded_by',
         'academic_year',
     )
+    ordering_fields = ['id', 'student', 'date', 'status', 'standard']
+    ordering = ['-date']
 
 
 class MarksheetDetailReadOnlyViewSet(ReadOnlyModelViewSet):
@@ -327,6 +341,8 @@ class MarksheetDetailReadOnlyViewSet(ReadOnlyModelViewSet):
     serializer_class = MarksheetDetailSerializer
     permission_classes = [IsAuthenticated]
     filterset_class = MarksheetDetailFilter
+    ordering_fields = ['id', 'student', 'exam_subject__exam', 'marks_obtained_theory']
+    ordering = ['-exam_subject__exam']
     
     def get_queryset(self):
         return SubjectResult.objects.select_related(
@@ -344,6 +360,8 @@ class SubjectResultReadOnlyViewSet(ReadOnlyModelViewSet):
     serializer_class = SubjectResultSerializer
     permission_classes = [IsAuthenticated]
     filterset_class = SubjectResultFilter
+    ordering_fields = ['id', 'student', 'exam_subject', 'marks_obtained_theory', 'marks_obtained_practical']
+    ordering = ['-exam_subject__exam']
 
     def get_queryset(self):
         return SubjectResult.objects.select_related(
@@ -360,6 +378,8 @@ class ExamSubjectReadOnlyViewSet(ReadOnlyModelViewSet):
     serializer_class = ExamSubjectSerializer
     permission_classes = [IsAuthenticated]
     filterset_class = ExamSubjectFilter
+    ordering_fields = ['id', 'exam', 'subject', 'standard', 'total_marks']
+    ordering = ['exam', 'subject']
 
     def get_queryset(self):
         return ExamSubject.objects.select_related(
@@ -375,6 +395,8 @@ class StudentResultSummaryReadOnlyViewSet(ReadOnlyModelViewSet):
     serializer_class = StudentResultSummarySerializer
     permission_classes = [IsAuthenticated]
     filterset_class = StudentResultSummaryFilter
+    ordering_fields = ['id', 'student', 'exam', 'total_marks', 'gpa', 'overall_grade']
+    ordering = ['-exam']
 
     def get_queryset(self):
         # No need to prefetch results anymore since we use SerializerMethodField

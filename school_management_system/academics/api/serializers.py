@@ -309,10 +309,8 @@ class ClassTeacherSerializer(serializers.ModelSerializer):
             'teacher',
             'academic_year',
             'display_name',
-            'created_at',
-            'updated_at',
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        read_only_fields = ['id']
     
     def get_display_name(self, obj):
         """Get display name from model method."""
@@ -387,10 +385,8 @@ class TeacherSubjectSerializer(serializers.ModelSerializer):
             'teacher',
             'academic_year',
             'display_name',
-            'created_at',
-            'updated_at',
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        read_only_fields = ['id']
     
     def get_display_name(self, obj):
         """Get display name from model method."""

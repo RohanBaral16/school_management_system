@@ -39,9 +39,7 @@ from .filters import (
 from .permissions import IsAdminOrTeacher
 
 
-# ============================================================================
 # ACADEMIC YEAR VIEWSETS
-# ============================================================================
 
 class AcademicYearViewSet(ModelViewSet):
     """
@@ -53,6 +51,8 @@ class AcademicYearViewSet(ModelViewSet):
     queryset = AcademicYear.objects.all()
     permission_classes = [IsAuthenticated, IsAdminOrTeacher]
     filterset_class = AcademicYearFilter
+    ordering_fields = ['id', 'title', 'start_date', 'end_date']
+    ordering = ['-start_date']
     
     def get_serializer_class(self):
         """Return appropriate serializer based on request method."""
@@ -68,11 +68,13 @@ class AcademicYearReadOnlyViewSet(ReadOnlyModelViewSet):
     serializer_class = AcademicYearSerializer
     permission_classes = [IsAuthenticated]
     filterset_class = AcademicYearFilter
+    ordering_fields = ['id', 'title', 'start_date', 'end_date']
+    ordering = ['-start_date']
 
 
-# ============================================================================
+
 # STANDARD VIEWSETS
-# ============================================================================
+
 
 class StandardViewSet(ModelViewSet):
     """
@@ -84,6 +86,8 @@ class StandardViewSet(ModelViewSet):
     queryset = Standard.objects.all()
     permission_classes = [IsAuthenticated, IsAdminOrTeacher]
     filterset_class = StandardFilter
+    ordering_fields = ['id', 'title', 'created_at']
+    ordering = ['title']
     
     def get_serializer_class(self):
         """Return appropriate serializer based on request method."""
@@ -99,11 +103,13 @@ class StandardReadOnlyViewSet(ReadOnlyModelViewSet):
     serializer_class = StandardSerializer
     permission_classes = [IsAuthenticated]
     filterset_class = StandardFilter
+    ordering_fields = ['id', 'title', 'created_at']
+    ordering = ['title']
 
 
-# ============================================================================
+
 # SUBJECT VIEWSETS
-# ============================================================================
+
 
 class SubjectViewSet(ModelViewSet):
     """
@@ -115,6 +121,8 @@ class SubjectViewSet(ModelViewSet):
     queryset = Subject.objects.select_related('standard')
     permission_classes = [IsAuthenticated, IsAdminOrTeacher]
     filterset_class = SubjectFilter
+    ordering_fields = ['id', 'title', 'code', 'standard']
+    ordering = ['standard', 'title']
     
     def get_serializer_class(self):
         """Return appropriate serializer based on request method."""
@@ -130,11 +138,12 @@ class SubjectReadOnlyViewSet(ReadOnlyModelViewSet):
     serializer_class = SubjectSerializer
     permission_classes = [IsAuthenticated]
     filterset_class = SubjectFilter
+    ordering_fields = ['id', 'title', 'code', 'standard']
+    ordering = ['standard', 'title']
 
 
-# ============================================================================
 # STUDENT ENROLLMENT VIEWSETS
-# ============================================================================
+
 
 class StudentEnrollmentViewSet(ModelViewSet):
     """
@@ -146,6 +155,8 @@ class StudentEnrollmentViewSet(ModelViewSet):
     queryset = StudentEnrollment.objects.select_related('student', 'standard', 'academic_year')
     permission_classes = [IsAuthenticated, IsAdminOrTeacher]
     filterset_class = StudentEnrollmentFilter
+    ordering_fields = ['id', 'student', 'standard', 'academic_year', 'enrollment_date']
+    ordering = ['-enrollment_date']
     
     def get_serializer_class(self):
         """Return appropriate serializer based on request method."""
@@ -189,11 +200,13 @@ class StudentEnrollmentReadOnlyViewSet(ReadOnlyModelViewSet):
     serializer_class = StudentEnrollmentSerializer
     permission_classes = [IsAuthenticated]
     filterset_class = StudentEnrollmentFilter
+    ordering_fields = ['id', 'student', 'standard', 'academic_year', 'enrollment_date']
+    ordering = ['-enrollment_date']
 
 
-# ============================================================================
+
 # CLASS TEACHER VIEWSETS
-# ============================================================================
+
 
 class ClassTeacherViewSet(ModelViewSet):
     """
@@ -205,6 +218,8 @@ class ClassTeacherViewSet(ModelViewSet):
     queryset = ClassTeacher.objects.select_related('standard', 'teacher', 'academic_year')
     permission_classes = [IsAuthenticated, IsAdminOrTeacher]
     filterset_class = ClassTeacherFilter
+    ordering_fields = ['id', 'standard', 'teacher', 'academic_year']
+    ordering = ['academic_year', 'standard']
     
     def get_serializer_class(self):
         """Return appropriate serializer based on request method."""
@@ -246,11 +261,12 @@ class ClassTeacherReadOnlyViewSet(ReadOnlyModelViewSet):
     serializer_class = ClassTeacherSerializer
     permission_classes = [IsAuthenticated]
     filterset_class = ClassTeacherFilter
+    ordering_fields = ['id', 'standard', 'teacher', 'academic_year']
+    ordering = ['academic_year', 'standard']
 
 
-# ============================================================================
+
 # TEACHER SUBJECT VIEWSETS
-# ============================================================================
 
 class TeacherSubjectViewSet(ModelViewSet):
     """
@@ -262,6 +278,8 @@ class TeacherSubjectViewSet(ModelViewSet):
     queryset = TeacherSubject.objects.select_related('subject', 'teacher', 'academic_year')
     permission_classes = [IsAuthenticated, IsAdminOrTeacher]
     filterset_class = TeacherSubjectFilter
+    ordering_fields = ['id', 'teacher', 'subject', 'academic_year']
+    ordering = ['academic_year', 'teacher']
     
     def get_serializer_class(self):
         """Return appropriate serializer based on request method."""
@@ -303,3 +321,5 @@ class TeacherSubjectReadOnlyViewSet(ReadOnlyModelViewSet):
     serializer_class = TeacherSubjectSerializer
     permission_classes = [IsAuthenticated]
     filterset_class = TeacherSubjectFilter
+    ordering_fields = ['id', 'teacher', 'subject', 'academic_year']
+    ordering = ['academic_year', 'teacher']
