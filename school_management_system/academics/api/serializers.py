@@ -13,6 +13,11 @@ from ..models import (
     StudentEnrollment,
     Subject,
     TeacherSubject,
+    Room,
+    TimeSlot,
+    ClassTimetable,
+    TeacherAvailability,
+    HolidayCalendar,
 )
 
 
@@ -418,4 +423,260 @@ class TeacherSubjectWriteSerializer(serializers.ModelSerializer):
             'academic_year_id',
         ]
         read_only_fields = ['id']
-        
+
+
+# ============================================================================
+# TIMETABLE AND SCHEDULE SERIALIZERS
+# ============================================================================
+
+class RoomSerializer(serializers.ModelSerializer):
+    """Read-only serializer for Room."""
+    
+    display_name = serializers.SerializerMethodField(read_only=True)
+    
+    class Meta:
+        model = Room
+        fields = [
+            'id',
+            'room_number',
+            'room_name',
+            'room_type',
+            'capacity',
+            'status',
+            'location',
+            'remarks',
+            'display_name',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+    
+    def get_display_name(self, obj):
+        """Get display name from model method."""
+        return obj.display_name()
+
+
+class RoomWriteSerializer(serializers.ModelSerializer):
+    """Write serializer for Room."""
+    
+    class Meta:
+        model = Room
+        fields = [
+            'id',
+            'room_number',
+            'room_name',
+            'room_type',
+            'capacity',
+            'status',
+            'location',
+            'remarks',
+        ]
+        read_only_fields = ['id']
+
+
+class TimeSlotSerializer(serializers.ModelSerializer):
+    """Read-only serializer for TimeSlot."""
+    
+    display_name = serializers.SerializerMethodField(read_only=True)
+    academic_year_name = serializers.CharField(source='academic_year.name', read_only=True)
+    
+    class Meta:
+        model = TimeSlot
+        fields = [
+            'id',
+            'academic_year',
+            'academic_year_name',
+            'period_number',
+            'period_name',
+            'start_time',
+            'end_time',
+            'duration_minutes',
+            'is_break',
+            'is_active',
+            'display_name',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+    
+    def get_display_name(self, obj):
+        """Get display name from model method."""
+        return obj.display_name()
+
+
+class TimeSlotWriteSerializer(serializers.ModelSerializer):
+    """Write serializer for TimeSlot."""
+    
+    class Meta:
+        model = TimeSlot
+        fields = [
+            'id',
+            'academic_year',
+            'period_number',
+            'period_name',
+            'start_time',
+            'end_time',
+            'duration_minutes',
+            'is_break',
+            'is_active',
+        ]
+        read_only_fields = ['id']
+
+
+class ClassTimetableSerializer(serializers.ModelSerializer):
+    """Read-only serializer for ClassTimetable."""
+    
+    standard_name = serializers.CharField(source='standard.display_name', read_only=True)
+    subject_name = serializers.CharField(source='subject.name', read_only=True)
+    teacher_name = serializers.CharField(source='teacher.full_name', read_only=True)
+    room_name = serializers.CharField(source='room.display_name', read_only=True)
+    time_slot_display = serializers.CharField(source='time_slot.display_name', read_only=True)
+    day_display = serializers.CharField(source='get_day_display', read_only=True)
+    display_name = serializers.SerializerMethodField(read_only=True)
+    
+    class Meta:
+        model = ClassTimetable
+        fields = [
+            'id',
+            'academic_year',
+            'standard',
+            'standard_name',
+            'day',
+            'day_display',
+            'time_slot',
+            'time_slot_display',
+            'subject',
+            'subject_name',
+            'teacher',
+            'teacher_name',
+            'room',
+            'room_name',
+            'is_optional',
+            'remarks',
+            'display_name',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+    
+    def get_display_name(self, obj):
+        """Get display name from model method."""
+        return obj.display_name()
+
+
+class ClassTimetableWriteSerializer(serializers.ModelSerializer):
+    """Write serializer for ClassTimetable."""
+    
+    class Meta:
+        model = ClassTimetable
+        fields = [
+            'id',
+            'academic_year',
+            'standard',
+            'day',
+            'time_slot',
+            'subject',
+            'teacher',
+            'room',
+            'is_optional',
+            'remarks',
+        ]
+        read_only_fields = ['id']
+
+
+class TeacherAvailabilitySerializer(serializers.ModelSerializer):
+    """Read-only serializer for TeacherAvailability."""
+    
+    teacher_name = serializers.CharField(source='teacher.full_name', read_only=True)
+    time_slot_display = serializers.CharField(source='time_slot.display_name', read_only=True)
+    day_display = serializers.CharField(source='get_day_display', read_only=True)
+    
+    class Meta:
+        model = TeacherAvailability
+        fields = [
+            'id',
+            'academic_year',
+            'teacher',
+            'teacher_name',
+            'day',
+            'day_display',
+            'time_slot',
+            'time_slot_display',
+            'is_available',
+            'reason',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class TeacherAvailabilityWriteSerializer(serializers.ModelSerializer):
+    """Write serializer for TeacherAvailability."""
+    
+    class Meta:
+        model = TeacherAvailability
+        fields = [
+            'id',
+            'academic_year',
+            'teacher',
+            'day',
+            'time_slot',
+            'is_available',
+            'reason',
+        ]
+        read_only_fields = ['id']
+
+
+class HolidayCalendarSerializer(serializers.ModelSerializer):
+    """Read-only serializer for HolidayCalendar."""
+    
+    academic_year_name = serializers.CharField(source='academic_year.name', read_only=True)
+    holiday_type_display = serializers.CharField(source='get_holiday_type_display', read_only=True)
+    display_name = serializers.SerializerMethodField(read_only=True)
+    is_holiday_today = serializers.SerializerMethodField(read_only=True)
+    
+    class Meta:
+        model = HolidayCalendar
+        fields = [
+            'id',
+            'academic_year',
+            'academic_year_name',
+            'title',
+            'holiday_type',
+            'holiday_type_display',
+            'start_date',
+            'end_date',
+            'description',
+            'is_active',
+            'display_name',
+            'is_holiday_today',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+    
+    def get_display_name(self, obj):
+        """Get display name from model method."""
+        return obj.display_name()
+    
+    def get_is_holiday_today(self, obj):
+        """Check if today is a holiday."""
+        return obj.is_holiday_today()
+
+
+class HolidayCalendarWriteSerializer(serializers.ModelSerializer):
+    """Write serializer for HolidayCalendar."""
+    
+    class Meta:
+        model = HolidayCalendar
+        fields = [
+            'id',
+            'academic_year',
+            'title',
+            'holiday_type',
+            'start_date',
+            'end_date',
+            'description',
+            'is_active',
+        ]
+        read_only_fields = ['id']

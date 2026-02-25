@@ -16,6 +16,11 @@ from ..models import (
     StudentEnrollment,
     Subject,
     TeacherSubject,
+    Room,
+    TimeSlot,
+    ClassTimetable,
+    TeacherAvailability,
+    HolidayCalendar,
 )
 from .serializers import (
     AcademicYearSerializer,
@@ -30,6 +35,16 @@ from .serializers import (
     SubjectWriteSerializer,
     TeacherSubjectSerializer,
     TeacherSubjectWriteSerializer,
+    RoomSerializer,
+    RoomWriteSerializer,
+    TimeSlotSerializer,
+    TimeSlotWriteSerializer,
+    ClassTimetableSerializer,
+    ClassTimetableWriteSerializer,
+    TeacherAvailabilitySerializer,
+    TeacherAvailabilityWriteSerializer,
+    HolidayCalendarSerializer,
+    HolidayCalendarWriteSerializer,
 )
 from .filters import (
     AcademicYearFilter,
@@ -357,3 +372,184 @@ class TeacherSubjectReadOnlyViewSet(ReadOnlyModelViewSet):
     filterset_class = TeacherSubjectFilter
     ordering_fields = ['id', 'teacher', 'subject', 'academic_year']
     ordering = ['academic_year', 'teacher']
+
+
+# ============================================================================
+# TIMETABLE AND SCHEDULE VIEWSETS
+# ============================================================================
+
+class RoomViewSet(ModelViewSet):
+    """
+    CRUD ViewSet for Room model.
+    - Admins and Teachers can create, update, delete
+    - All authenticated users can read
+    """
+    
+    queryset = Room.objects.all()
+    permission_classes = [IsAuthenticated, IsAdminOrTeacher]
+    ordering_fields = ['id', 'room_number', 'room_type', 'status']
+    ordering = ['room_number']
+    
+    def get_serializer_class(self):
+        """Return appropriate serializer based on request method."""
+        if self.request.method in ['POST', 'PUT', 'PATCH']:
+            return RoomWriteSerializer
+        return RoomSerializer
+
+
+class TimeSlotViewSet(ModelViewSet):
+    """
+    CRUD ViewSet for TimeSlot model.
+    - Admins and Teachers can create, update, delete
+    - All authenticated users can read
+    """
+    
+    queryset = TimeSlot.objects.all()
+    permission_classes = [IsAuthenticated, IsAdminOrTeacher]
+    ordering_fields = ['id', 'academic_year', 'period_number', 'start_time']
+    ordering = ['academic_year', 'period_number']
+    
+    def get_serializer_class(self):
+        """Return appropriate serializer based on request method."""
+        if self.request.method in ['POST', 'PUT', 'PATCH']:
+            return TimeSlotWriteSerializer
+        return TimeSlotSerializer
+    
+    def get_queryset(self):
+        """Filter time slots by academic year if provided."""
+        queryset = TimeSlot.objects.all()
+        academic_year_id = self.request.query_params.get('academic_year_id')
+        
+        if academic_year_id:
+            queryset = queryset.filter(academic_year_id=academic_year_id)
+        
+        return queryset.select_related('academic_year')
+
+
+class ClassTimetableViewSet(ModelViewSet):
+    """
+    CRUD ViewSet for ClassTimetable model.
+    - Admins and Teachers can create, update, delete
+    - All authenticated users can read
+    """
+    
+    queryset = ClassTimetable.objects.all()
+    permission_classes = [IsAuthenticated, IsAdminOrTeacher]
+    ordering_fields = ['id', 'standard', 'day', 'time_slot']
+    ordering = ['standard', 'day', 'time_slot']
+    
+    def get_serializer_class(self):
+        """Return appropriate serializer based on request method."""
+        if self.request.method in ['POST', 'PUT', 'PATCH']:
+            return ClassTimetableWriteSerializer
+        return ClassTimetableSerializer
+    
+    def get_queryset(self):
+        """Filter timetable by standard, academic year, and day if provided."""
+        queryset = ClassTimetable.objects.select_related(
+            'standard', 'subject', 'teacher', 'room', 'time_slot', 'academic_year'
+        )
+        
+        standard_id = self.request.query_params.get('standard_id')
+        academic_year_id = self.request.query_params.get('academic_year_id')
+        day = self.request.query_params.get('day')
+        
+        if standard_id:
+            queryset = queryset.filter(standard_id=standard_id)
+        if academic_year_id:
+            queryset = queryset.filter(academic_year_id=academic_year_id)
+        if day:
+            queryset = queryset.filter(day=day)
+        
+        return queryset
+    
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    def get_by_standard(self, request):
+        """Get complete timetable for a specific standard."""
+        standard_id = request.query_params.get('standard_id')
+        academic_year_id = request.query_params.get('academic_year_id')
+        
+        if not standard_id or not academic_year_id:
+            return Response(
+                {'error': 'standard_id and academic_year_id are required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        timetables = ClassTimetable.objects.filter(
+            standard_id=standard_id,
+            academic_year_id=academic_year_id
+        ).select_related('standard', 'subject', 'teacher', 'room', 'time_slot')
+        
+        serializer = self.get_serializer(timetables, many=True)
+        return Response(serializer.data)
+
+
+class TeacherAvailabilityViewSet(ModelViewSet):
+    """
+    CRUD ViewSet for TeacherAvailability model.
+    - Admins and Teachers can create, update, delete
+    - All authenticated users can read
+    """
+    
+    queryset = TeacherAvailability.objects.all()
+    permission_classes = [IsAuthenticated, IsAdminOrTeacher]
+    ordering_fields = ['id', 'teacher', 'day', 'time_slot']
+    ordering = ['teacher', 'day', 'time_slot']
+    
+    def get_serializer_class(self):
+        """Return appropriate serializer based on request method."""
+        if self.request.method in ['POST', 'PUT', 'PATCH']:
+            return TeacherAvailabilityWriteSerializer
+        return TeacherAvailabilitySerializer
+    
+    def get_queryset(self):
+        """Filter availability by teacher and academic year if provided."""
+        queryset = TeacherAvailability.objects.select_related(
+            'teacher', 'time_slot', 'academic_year'
+        )
+        
+        teacher_id = self.request.query_params.get('teacher_id')
+        academic_year_id = self.request.query_params.get('academic_year_id')
+        
+        if teacher_id:
+            queryset = queryset.filter(teacher_id=teacher_id)
+        if academic_year_id:
+            queryset = queryset.filter(academic_year_id=academic_year_id)
+        
+        return queryset
+
+
+class HolidayCalendarViewSet(ModelViewSet):
+    """
+    CRUD ViewSet for HolidayCalendar model.
+    - Admins can create, update, delete
+    - All authenticated users can read
+    """
+    
+    queryset = HolidayCalendar.objects.all()
+    permission_classes = [IsAuthenticated, IsAdminOrTeacher]
+    ordering_fields = ['id', 'academic_year', 'start_date', 'holiday_type']
+    ordering = ['academic_year', 'start_date']
+    
+    def get_serializer_class(self):
+        """Return appropriate serializer based on request method."""
+        if self.request.method in ['POST', 'PUT', 'PATCH']:
+            return HolidayCalendarWriteSerializer
+        return HolidayCalendarSerializer
+    
+    def get_queryset(self):
+        """Filter holidays by academic year if provided."""
+        queryset = HolidayCalendar.objects.select_related('academic_year')
+        academic_year_id = self.request.query_params.get('academic_year_id')
+        
+        if academic_year_id:
+            queryset = queryset.filter(academic_year_id=academic_year_id)
+        
+        return queryset
+    
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    def active_holidays(self, request):
+        """Get all active holidays for the current academic year."""
+        holidays = HolidayCalendar.objects.filter(is_active=True).select_related('academic_year')
+        serializer = self.get_serializer(holidays, many=True)
+        return Response(serializer.data)

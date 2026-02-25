@@ -16,6 +16,11 @@ from .views import (
     ClassTeacherReadOnlyViewSet,
     TeacherSubjectViewSet,
     TeacherSubjectReadOnlyViewSet,
+    RoomViewSet,
+    TimeSlotViewSet,
+    ClassTimetableViewSet,
+    TeacherAvailabilityViewSet,
+    HolidayCalendarViewSet,
 )
 
 # Export viewsets for main router
@@ -26,6 +31,11 @@ api_viewsets = [
     ('student-enrollments', StudentEnrollmentViewSet, 'student-enrollments'),
     ('class-teachers', ClassTeacherViewSet, 'class-teachers'),
     ('teacher-subjects', TeacherSubjectViewSet, 'teacher-subjects'),
+    ('rooms', RoomViewSet, 'rooms'),
+    ('time-slots', TimeSlotViewSet, 'time-slots'),
+    ('class-timetables', ClassTimetableViewSet, 'class-timetables'),
+    ('teacher-availability', TeacherAvailabilityViewSet, 'teacher-availability'),
+    ('holidays', HolidayCalendarViewSet, 'holidays'),
     ('academic-years-readonly', AcademicYearReadOnlyViewSet, 'academic-years-readonly'),
     ('standards-readonly', StandardReadOnlyViewSet, 'standards-readonly'),
     ('subjects-readonly', SubjectReadOnlyViewSet, 'subjects-readonly'),
