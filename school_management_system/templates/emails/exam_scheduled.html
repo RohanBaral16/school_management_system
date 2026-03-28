@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exam Scheduled</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .content {
+            padding: 30px;
+        }
+        .info-box {
+            background-color: #f8f9fa;
+            border-left: 4px solid #f5576c;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .info-box strong {
+            color: #f5576c;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white !important;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+        .button:hover {
+            opacity: 0.9;
+        }
+        .footer {
+            background-color: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+            border-top: 1px solid #e9ecef;
+        }
+        .greeting {
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+        .highlight {
+            background-color: #fff3cd;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            border-left: 4px solid #ffc107;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📅 Exam Scheduled</h1>
+        </div>
+        <div class="content">
+            <div class="greeting">
+                Hello <strong>{{ student_name }}</strong>,
+            </div>
+            
+            <p>A new exam has been scheduled for your class.</p>
+            
+            <div class="info-box">
+                <p><strong>Exam Name:</strong> {{ exam_name }}</p>
+                <p><strong>Standard:</strong> {{ standard_name }}</p>
+                <p><strong>Start Date:</strong> {{ start_date }}</p>
+                {% if end_date %}
+                <p><strong>End Date:</strong> {{ end_date }}</p>
+                {% endif %}
+            </div>
+            
+            <div class="highlight">
+                <strong>📝 Important:</strong> Please prepare accordingly and ensure you are present on the exam dates.
+            </div>
+            
+            <p>You can view the complete exam schedule and subject details by clicking the button below:</p>
+            
+            <center>
+                <a href="{{ exam_url }}" class="button">View Exam Details</a>
+            </center>
+            
+            <p style="margin-top: 20px; color: #666; font-size: 14px;">
+                If the button doesn't work, copy and paste this link in your browser:<br>
+                <a href="{{ exam_url }}" style="color: #f5576c;">{{ exam_url }}</a>
+            </p>
+        </div>
+        <div class="footer">
+            <p>This is an automated message from the School Management System.</p>
+            <p>© 2025 School Management System. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

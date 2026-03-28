@@ -1,6 +1,14 @@
-from rest_framework.routers import DefaultRouter
-from django.urls import path, include
+"""
+URL configuration for Activities API.
+Exports viewsets for main router in urls.py
+"""
+
 from .views import (
+    ExamViewSet,
+    ExamSubjectViewSet,
+    SubjectResultViewSet,
+    StudentResultSummaryViewSet,
+    AttendanceViewSet,
     SubjectResultReadOnlyViewSet,
     ExamSubjectReadOnlyViewSet,
     StudentResultSummaryReadOnlyViewSet,
@@ -9,15 +17,19 @@ from .views import (
     MarksheetDetailReadOnlyViewSet,
 )
 
-router = DefaultRouter()
-
-router.register(r'subjectresults-readonly', SubjectResultReadOnlyViewSet, basename='subjectresults-readonly')
-router.register(r'examsubject-readonly', ExamSubjectReadOnlyViewSet, basename='examsubject-readonly')
-router.register(r'resultsummary-readonly', StudentResultSummaryReadOnlyViewSet, basename='resultsummary-readonly')
-router.register(r'exam-readonly', ExamReadOnlyViewSet, basename='exam-readonly')
-router.register(r'attendance-readonly', AttendanceReadOnlyViewSet, basename='attendance-readonly')
-router.register(r'marksheet-readonly', MarksheetDetailReadOnlyViewSet, basename='marksheet-readonly')
-
-urlpatterns = [
-    path('', include(router.urls))
+# Export viewsets for main router
+api_viewsets = [
+    ('exams', ExamViewSet, 'exams'),
+    ('exam-subjects', ExamSubjectViewSet, 'exam-subjects'),
+    ('subject-results', SubjectResultViewSet, 'subject-results'),
+    ('result-summaries', StudentResultSummaryViewSet, 'result-summaries'),
+    ('attendance', AttendanceViewSet, 'attendance'),
+    ('subjectresults-readonly', SubjectResultReadOnlyViewSet, 'subjectresults-readonly'),
+    ('examsubject-readonly', ExamSubjectReadOnlyViewSet, 'examsubject-readonly'),
+    ('resultsummary-readonly', StudentResultSummaryReadOnlyViewSet, 'resultsummary-readonly'),
+    ('exam-readonly', ExamReadOnlyViewSet, 'exam-readonly'),
+    ('attendance-readonly', AttendanceReadOnlyViewSet, 'attendance-readonly'),
+    ('marksheet-readonly', MarksheetDetailReadOnlyViewSet, 'marksheet-readonly'),
 ]
+
+urlpatterns = []

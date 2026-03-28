@@ -1,6 +1,7 @@
 from django.test import TestCase
-from django.contrib.auth import get_user_model
 from decimal import Decimal
+from django.db import IntegrityError
+from django.core.exceptions import ValidationError
 
 from activities.models import SubjectResult, StudentResultSummary, Exam, ExamSubject
 from academics.models import (
@@ -8,7 +9,7 @@ from academics.models import (
 )
 from accounts.models import Student
 
-User = get_user_model()
+NEPALI_DATE_STR = "2081-01-01"
 
 
 class StudentResultSummaryTestCase(TestCase):
@@ -18,29 +19,32 @@ class StudentResultSummaryTestCase(TestCase):
         """Set up test data."""
         # Create academic year
         self.academic_year = AcademicYear.objects.create(
-            year='2081',
+            name='2081',
             is_current=True
         )
         
         # Create standard
         self.standard = Standard.objects.create(
-            name='Class 10',
-            section='A',
-            academic_year=self.academic_year
+            name='10',
+            section='A'
         )
         
         # Create subject
         self.subject = Subject.objects.create(
             name='Mathematics',
-            standard=self.standard
+            code='MATH',
+            standard=self.standard,
+            credit_hours=Decimal('3.0'),
+            curriculum_version='2077/2078'
         )
         
         # Create student
         self.student_user = Student.objects.create(
-            username='student1',
-            email='student1@test.com',
             first_name='Test',
-            last_name='Student'
+            last_name='Student',
+            email='student1@test.com',
+            admission_number='ADM001',
+            gender='male'
         )
         
         # Create enrollment
@@ -57,8 +61,8 @@ class StudentResultSummaryTestCase(TestCase):
             name='First Terminal Exam 2081',
             term='first_term',
             academic_year=self.academic_year,
-            start_date='2081-01-01',
-            end_date='2081-01-15',
+            start_date=NEPALI_DATE_STR,
+            end_date=NEPALI_DATE_STR,
             is_published=False
         )
         
@@ -66,7 +70,7 @@ class StudentResultSummaryTestCase(TestCase):
         self.exam_subject = ExamSubject.objects.create(
             exam=self.exam,
             subject=self.subject,
-            exam_date='2081-01-05',
+            exam_date=NEPALI_DATE_STR,
             full_marks_theory=Decimal('75.00'),
             pass_marks_theory=Decimal('27.00'),
             full_marks_practical=Decimal('25.00'),
@@ -81,16 +85,18 @@ class StudentResultSummaryTestCase(TestCase):
             marks_obtained_practical=Decimal('20.00')
         )
         
-        # Create result summary
-        self.summary = StudentResultSummary.objects.create(
+        # Create or update result summary (signals may already create one)
+        self.summary, _ = StudentResultSummary.objects.update_or_create(
             student=self.enrollment,
             exam=self.exam,
-            academic_year=self.academic_year,
-            total_marks=Decimal('80.00'),
-            percentage=Decimal('80.00'),
-            gpa=Decimal('3.60'),
-            overall_grade='A',
-            rank=1
+            defaults={
+                'academic_year': self.academic_year,
+                'total_marks': Decimal('80.00'),
+                'percentage': Decimal('80.00'),
+                'gpa': Decimal('3.60'),
+                'overall_grade': 'A',
+                'rank': 1,
+            },
         )
     
     def test_get_subject_results_method(self):
@@ -116,13 +122,16 @@ class StudentResultSummaryTestCase(TestCase):
         # Create another subject and exam subject
         subject2 = Subject.objects.create(
             name='Science',
-            standard=self.standard
+            code='SCI',
+            standard=self.standard,
+            credit_hours=Decimal('3.0'),
+            curriculum_version='2077/2078'
         )
         
         exam_subject2 = ExamSubject.objects.create(
             exam=self.exam,
             subject=subject2,
-            exam_date='2081-01-06',
+            exam_date=NEPALI_DATE_STR,
             full_marks_theory=Decimal('75.00'),
             pass_marks_theory=Decimal('27.00'),
             full_marks_practical=Decimal('25.00'),
@@ -160,26 +169,29 @@ class SubjectResultTestCase(TestCase):
     def setUp(self):
         """Set up test data."""
         self.academic_year = AcademicYear.objects.create(
-            year='2081',
+            name='2081',
             is_current=True
         )
         
         self.standard = Standard.objects.create(
-            name='Class 10',
-            section='A',
-            academic_year=self.academic_year
+            name='10',
+            section='A'
         )
         
         self.subject = Subject.objects.create(
             name='Mathematics',
-            standard=self.standard
+            code='MATH',
+            standard=self.standard,
+            credit_hours=Decimal('3.0'),
+            curriculum_version='2077/2078'
         )
         
         self.student_user = Student.objects.create(
-            username='student2',
-            email='student2@test.com',
             first_name='Test',
-            last_name='Student2'
+            last_name='Student2',
+            email='student2@test.com',
+            admission_number='ADM002',
+            gender='male'
         )
         
         self.enrollment = StudentEnrollment.objects.create(
@@ -194,15 +206,15 @@ class SubjectResultTestCase(TestCase):
             name='First Terminal Exam 2081',
             term='first_term',
             academic_year=self.academic_year,
-            start_date='2081-01-01',
-            end_date='2081-01-15',
+            start_date=NEPALI_DATE_STR,
+            end_date=NEPALI_DATE_STR,
             is_published=False
         )
         
         self.exam_subject = ExamSubject.objects.create(
             exam=self.exam,
             subject=self.subject,
-            exam_date='2081-01-05',
+            exam_date=NEPALI_DATE_STR,
             full_marks_theory=Decimal('75.00'),
             pass_marks_theory=Decimal('27.00'),
             full_marks_practical=Decimal('25.00'),
@@ -232,7 +244,7 @@ class SubjectResultTestCase(TestCase):
         )
         
         # Trying to create duplicate should raise error
-        with self.assertRaises(Exception):
+        with self.assertRaises(ValidationError):
             SubjectResult.objects.create(
                 student=self.enrollment,
                 exam_subject=self.exam_subject,

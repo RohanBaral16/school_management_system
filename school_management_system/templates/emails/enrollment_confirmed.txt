@@ -1,0 +1,14 @@
+Enrollment Confirmed - {{ academic_year }}
+
+Dear {{ user.first_name }},
+
+Your enrollment has been confirmed for the academic year {{ academic_year }}.
+
+Standard: {{ standard }}
+Academic Year: {{ academic_year }}
+Enrollment Date: {{ current_date }}
+
+Welcome to {{ standard }}. Your class teacher will contact you with further information.
+
+Thank you,
+School Management System

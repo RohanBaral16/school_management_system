@@ -1,24 +1,37 @@
-from rest_framework.routers import DefaultRouter
-from django.urls import path, include
+"""
+URL configuration for Academics API.
+Exports viewsets for main router in urls.py
+"""
 
 from .views import (
-	AcademicYearReadOnlyViewSet,
-	StandardReadOnlyViewSet,
-	SubjectReadOnlyViewSet,
-	StudentEnrollmentReadOnlyViewSet,
-	ClassTeacherReadOnlyViewSet,
-	TeacherSubjectReadOnlyViewSet,
+    AcademicYearViewSet,
+    AcademicYearReadOnlyViewSet,
+    StandardViewSet,
+    StandardReadOnlyViewSet,
+    SubjectViewSet,
+    SubjectReadOnlyViewSet,
+    StudentEnrollmentViewSet,
+    StudentEnrollmentReadOnlyViewSet,
+    ClassTeacherViewSet,
+    ClassTeacherReadOnlyViewSet,
+    TeacherSubjectViewSet,
+    TeacherSubjectReadOnlyViewSet,
 )
 
-router = DefaultRouter()
-
-router.register(r'academic-years-readonly', AcademicYearReadOnlyViewSet, basename='academic-years-readonly')
-router.register(r'standards-readonly', StandardReadOnlyViewSet, basename='standards-readonly')
-router.register(r'subjects-readonly', SubjectReadOnlyViewSet, basename='subjects-readonly')
-router.register(r'student-enrollments-readonly', StudentEnrollmentReadOnlyViewSet, basename='student-enrollments-readonly')
-router.register(r'class-teachers-readonly', ClassTeacherReadOnlyViewSet, basename='class-teachers-readonly')
-router.register(r'teacher-subjects-readonly', TeacherSubjectReadOnlyViewSet, basename='teacher-subjects-readonly')
-
-urlpatterns = [
-	path('', include(router.urls)),
+# Export viewsets for main router
+api_viewsets = [
+    ('academic-years', AcademicYearViewSet, 'academic-years'),
+    ('standards', StandardViewSet, 'standards'),
+    ('subjects', SubjectViewSet, 'subjects'),
+    ('student-enrollments', StudentEnrollmentViewSet, 'student-enrollments'),
+    ('class-teachers', ClassTeacherViewSet, 'class-teachers'),
+    ('teacher-subjects', TeacherSubjectViewSet, 'teacher-subjects'),
+    ('academic-years-readonly', AcademicYearReadOnlyViewSet, 'academic-years-readonly'),
+    ('standards-readonly', StandardReadOnlyViewSet, 'standards-readonly'),
+    ('subjects-readonly', SubjectReadOnlyViewSet, 'subjects-readonly'),
+    ('student-enrollments-readonly', StudentEnrollmentReadOnlyViewSet, 'student-enrollments-readonly'),
+    ('class-teachers-readonly', ClassTeacherReadOnlyViewSet, 'class-teachers-readonly'),
+    ('teacher-subjects-readonly', TeacherSubjectReadOnlyViewSet, 'teacher-subjects-readonly'),
 ]
+
+urlpatterns = []

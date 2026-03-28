@@ -11,6 +11,9 @@ class Student(models.Model):
         ('other', 'Other'),
     ]
     
+    # Linking to Django's built-in User for Authentication
+    user = models.OneToOneField(User, on_delete=models.SET_NULL, null=True, blank=True)
+
     first_name = models.CharField(max_length=50)
     middle_name = models.CharField(max_length=50, blank=True, null=True)
     last_name = models.CharField(max_length=50)
@@ -35,6 +38,9 @@ class Student(models.Model):
     class Meta:
         ordering = ['first_name', 'last_name']
 
+    def __str__(self):
+        return self.full_name
+    
     # def __str__(self):
     #     return f"{self.first_name} {self.last_name}"
     

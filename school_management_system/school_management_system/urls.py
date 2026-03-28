@@ -17,35 +17,43 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
-from rest_framework import permissions
-from drf_yasg.views import get_schema_view
-from drf_yasg import openapi
+from rest_framework.routers import DefaultRouter
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
-schema_view = get_schema_view(
-   openapi.Info(
-      title="School Management System API",
-      default_version='v1',
-      description="API documentation for School Management Project",
-      terms_of_service="https://www.example.com/terms/",
-      contact=openapi.Contact(email="contact@example.com"),
-      license=openapi.License(name="BSD License"),
-   ),
-   public=True,
-   permission_classes=(permissions.AllowAny,),
-)
+# Single router for all API endpoints
+router = DefaultRouter()
 
+# Register all viewsets from different apps
+from accounts.api.urls import api_viewsets as accounts_viewsets
+from academics.api.urls import api_viewsets as academics_viewsets
+from activities.api.urls import api_viewsets as activities_viewsets
+from core.notification_views import NotificationViewSet, NotificationPreferenceViewSet
+
+for prefix, viewset, basename in accounts_viewsets:
+    router.register(prefix, viewset, basename=basename)
+
+for prefix, viewset, basename in academics_viewsets:
+    router.register(prefix, viewset, basename=basename)
+
+for prefix, viewset, basename in activities_viewsets:
+    router.register(prefix, viewset, basename=basename)
+
+# Register notification viewsets
+router.register(r'notifications', NotificationViewSet, basename='notification')
+router.register(r'notification-preferences', NotificationPreferenceViewSet, basename='notification-preference')
 
 urlpatterns = [
-    path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
-    path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
     path('admin/', admin.site.urls),
-    path('api/', include('activities.api.urls')),
-    path('api/', include('accounts.api.urls')),
-    path('api/', include('academics.api.urls'))
+    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+    path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+    path('api/', include(router.urls)),
 ]
 
 if settings.DEBUG:
     import debug_toolbar
-    urlpatterns = [
+    urlpatterns += [
         path('__debug__/', include(debug_toolbar.urls)),
-    ] + urlpatterns
+    ]

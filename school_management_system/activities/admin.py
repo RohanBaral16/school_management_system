@@ -216,6 +216,10 @@ class ExamAdmin(admin.ModelAdmin):
     inlines = [ExamSubjectInline]
     actions = [process_exam_full_results]
 
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        return queryset.select_related('academic_year')
+
     def get_actions(self, request):
         actions = super().get_actions(request)
         actions.pop('delete_selected', None)
@@ -316,7 +320,6 @@ class SubjectResultAdmin(admin.ModelAdmin):
     @admin.display(description='Exam', ordering='exam_subject__exam__name')
     def get_exam(self, obj):
         return obj.exam_subject.exam.name
-
 
 @admin.register(Attendance)
 class AttendanceAdmin(admin.ModelAdmin):
